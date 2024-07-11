@@ -1,21 +1,25 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Babylon.js 虫子与草</title>
     <style>
-        html, body {
+        html,
+        body {
             width: 100%;
             height: 100%;
             margin: 0;
             overflow: hidden;
         }
+
         #renderCanvas {
             width: 100%;
             height: 100%;
             touch-action: none;
         }
+
         #controlPanel {
             position: absolute;
             top: 10px;
@@ -24,50 +28,125 @@
             padding: 10px;
             border-radius: 5px;
         }
-        #controlPanel button, #controlPanel input {
+
+        #controlPanel button,
+        #controlPanel input,
+        #controlPanel span {
             display: block;
             margin: 5px 0;
+        }
+
+        #miniMap {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid black;
+            width: 200px;
+            height: 200px;
         }
     </style>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/loaders/babylon.glTF2FileLoader.js"></script>
+    <script src="camera.js"></script>
 </head>
+
 <body>
     <canvas id="renderCanvas"></canvas>
     <div id="controlPanel">
         <button id="moveForward">前进</button>
-        <button id="moveBackward">后退</button>
-        <button id="moveLeft">左移</button>
-        <button id="moveRight">右移</button>
+        <button id="moveBackward">后转</button>
+        <button id="moveLeft">左转</button>
+        <button id="moveRight">右转</button>
         <input type="number" id="wormCount" placeholder="输入虫子数量" />
         <button id="addWorm">添加虫子</button>
         <input type="number" id="grassCount" placeholder="输入草的数量" />
-        <button id="updateGrass">更新草数量</button>
+        <button id="updateGrass">添加草</button>
+        <span id="wormCountDisplay">虫子数量: 0</span>
+        <span id="grassCountDisplay">草的数量: 0</span>
+        <button id="toggleMovement">暂停虫子运动</button>
+        <label for="speedControl">虫子速度</label>
+        <input type="range" id="speedControl" min="0.01" max="1" step="0.01" value="0.1">
+        <span id="speedDisplay">当前速度: 0.1</span>
+
     </div>
+    <canvas id="miniMap"></canvas>
     <script>
         // 获取canvas元素
         var canvas = document.getElementById("renderCanvas");
+        var miniMapCanvas = document.getElementById("miniMap");
+        var miniMapContext = miniMapCanvas.getContext("2d");
+
         // 创建Babylon引擎
         var engine = new BABYLON.Engine(canvas, true);
         var worms = []; // 存储虫子的数组
-        var grassCount = 0; // 初始草的数量
-        var grassContainer; // 存放草的容器
+        var wormTemplate = null;
+        var grassInstances = []; // 存储草实例的数组
+        var movementEnabled = true; // 控制虫子运动的开关
+        var groundSize = 2000; // 地面尺寸
+
+        // 虫子类定义
+        class Worm {
+            constructor(instance) {
+                this.instance = instance;
+                this.position = instance.position;
+                this.rotation = instance.rotation;
+                this.speed = 1;
+            }
+
+            move(direction) {
+                let moveVector;
+                switch (direction) {
+                    case "forward":
+                        moveVector = new BABYLON.Vector3(Math.sin(this.rotation.y) * this.speed, 0, Math.cos(this.rotation.y) * this.speed);
+                        this.position.addInPlace(moveVector);
+                        break;
+                    case "backward":
+                        this.rotation.y += Math.PI; // 转到反方向
+                        break;
+                    case "left":
+                        this.rotation.y -= Math.PI / 2; // 左转90度
+                        break;
+                    case "right":
+                        this.rotation.y += Math.PI / 2; // 右转90度
+                        break;
+                }
+                this.clampToGround();
+            }
+
+
+            randomMove() {
+                let directions = ["forward", "backward", "left", "right"];
+                this.move(directions[Math.floor(Math.random() * directions.length)]);
+            }
+
+            clampToGround() {
+                var halfSize = groundSize / 2;
+                this.position.x = Math.max(-halfSize, Math.min(halfSize, this.position.x));
+                this.position.z = Math.max(-halfSize, Math.min(halfSize, this.position.z));
+            }
+
+            updateSpeed(newSpeed) {
+                this.speed = newSpeed;
+            }
+        }
 
         // 创建场景的函数
         var createScene = function () {
             var scene = new BABYLON.Scene(engine);
+
             // 创建相机
-            var camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 3, 200, new BABYLON.Vector3(0, 0, 0), scene);
-            camera.attachControl(canvas, true);
+            var camera = new CustomCamera("customCamera", new BABYLON.Vector3(0, 100, -60), scene);
+            camera.attachControl(canvas, false);
+
             // 创建灯光
-            var sun = new BABYLON.DirectionalLight("sun", new BABYLON.Vector3(-1, -2, -1), scene);
-            sun.position = new BABYLON.Vector3(20, 40, 20);
-            sun.intensity = 1.0;
             var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
-            light1.intensity = 0.6;
+            light1.groundColor = new BABYLON.Color3(0.5, 0.5, 0.5); // 下半球光照强度
+            light1.specular = new BABYLON.Color3(0.3, 0.3, 0.3); // 上半球光照强度
+            light1.intensity = 1.0;
 
             // 创建地面
-            var ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 1000, height: 1000}, scene);
+            var ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 1000, height: 1000 }, scene);
             var groundMaterial = new BABYLON.StandardMaterial("groundMaterial", scene);
             groundMaterial.diffuseTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/grass.png", scene);
             groundMaterial.diffuseTexture.uScale = 50;
@@ -75,7 +154,7 @@
             ground.material = groundMaterial;
 
             // 创建天空盒
-            var skybox = BABYLON.MeshBuilder.CreateBox("skyBox", {size: 1000.0}, scene);
+            var skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 2000.0 }, scene);
             var skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMaterial", scene);
             skyboxMaterial.backFaceCulling = false;
             skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("https://www.babylonjs-playground.com/textures/skybox", scene);
@@ -84,8 +163,30 @@
             skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
             skybox.material = skyboxMaterial;
 
-            grassContainer = new BABYLON.TransformNode("grassContainer", scene);
-            
+            //用于实例化并随机分布模型
+            var duplicate = function (container, offset, i) {
+                // 实例化模型，并使用匿名函数修改实例的名称
+                let entries = container.instantiateModelsToScene((n) => { return n + i }, false, { doNotInstantiate: ((n) => false) });
+
+                // 循环遍历实例的根节点，随机设置位置
+                for (var node of entries.rootNodes) {
+                    node.position.x += Math.random() * 1000 - 500; // 随机设置 x 坐标
+                    node.position.y = 0.5; // 设置 y 坐标
+                    node.position.z += Math.random() * 1000 - 500; // 随机设置 z 坐标
+                }
+            };
+
+            // 使用 BABYLON.SceneLoader 加载 worm2.glb 模型文件
+            BABYLON.SceneLoader.LoadAssetContainer("", "worm2.glb", scene, function (container) {
+                // 将所有模型元素添加到场景中
+                container.addAllToScene();
+
+                // 过滤几何体网格，并将它们合并成一个网格 wormTemplate
+                mymeshes = container.meshes.filter(mesh => mesh.geometry);
+                wormTemplate = BABYLON.Mesh.MergeMeshes(mymeshes, true, false, null, false, true);
+            });
+
+            // 返回创建的场景对象
             return scene;
         };
 
@@ -94,6 +195,10 @@
         // 开始渲染循环
         engine.runRenderLoop(function () {
             scene.render();
+            if (movementEnabled) {
+                worms.forEach(worm => worm.randomMove());
+            }
+            updateMiniMap();
         });
 
         // 调整窗口大小时更新引擎大小
@@ -101,24 +206,17 @@
             engine.resize();
         });
 
-        // 添加虫子的函数
-        function addWormInstance() {
-            BABYLON.SceneLoader.ImportMesh("", "", "worm2.glb", scene, function (meshes, particleSystems, skeletons, animationGroups) {
-                var worm = meshes[0];
-                if (worm) {
-                    worm.scaling = new BABYLON.Vector3(2.5, 2.5, 2.5); // 缩小虫子
-                    worm.position = new BABYLON.Vector3(Math.random() * 1000 - 500, 0.5, Math.random() * 1000 - 500);
-                    worms.push(worm);
-                    console.log("New worm added:", worm);
-                } else {
-                    console.error("Worm model not found");
-                }
-            });
+        var grassTemplate = null;
+
+        // 更新显示数量的函数
+        function updateCountDisplay() {
+            document.getElementById("wormCountDisplay").innerText = "虫子数量: " + worms.length;
+            document.getElementById("grassCountDisplay").innerText = "草的数量: " + grassInstances.length;
         }
 
         // 创建单草的函数
         function createSingleGrass(scene) {
-            var grassBlades = [];
+            var items = [];
             for (var i = 0; i < 5; i++) {
                 var blade = BABYLON.MeshBuilder.CreateCylinder("blade", {
                     height: 12, // 放大草的高度
@@ -130,181 +228,107 @@
                 blade.material.diffuseColor = new BABYLON.Color3(0, 1, 0);
                 blade.position.y = 6;
                 blade.rotation.z = Math.PI / 6 * (i - 2);
-                grassBlades.push(blade);
+                items.push(blade);
             }
 
-            var grassClump = new BABYLON.TransformNode("singleGrassClump", scene);
-            grassBlades.forEach(blade => {
-                blade.parent = grassClump;
-            });
-
-            grassClump.position.y = -6;
-            return grassClump;
-        }
-
-        // 创建带花的草的函数
-        function createFlowerGrass(scene) {
-            var grassBlades = [];
-            for (var i = 0; i < 5; i++) {
-                var blade = BABYLON.MeshBuilder.CreateCylinder("blade", {
-                    height: 12, // 放大草的高度
-                    diameterTop: 0,
-                    diameterBottom: 1.2, // 放大草的底部直径
-                    tessellation: 3
-                }, scene);
-                blade.material = new BABYLON.StandardMaterial("grassMaterial", scene);
-                blade.material.diffuseColor = new BABYLON.Color3(0, 1, 0);
-                blade.position.y = 6;
-                blade.rotation.z = Math.PI / 6 * (i - 2);
-                grassBlades.push(blade);
-            }
-
-            var grassClump = new BABYLON.TransformNode("flowerGrassClump", scene);
-            grassBlades.forEach(blade => {
-                blade.parent = grassClump;
-            });
-
-            grassClump.position.y = -6;
-
-            var flowerRadius = 0.6; // 放大花的半径
-            var flowerCount = 5;
-            for (var i = 0; i < flowerCount; i++) {
-                var angle = (i / flowerCount) * 2 * Math.PI;
-                var flowerPetal = BABYLON.MeshBuilder.CreateSphere("flowerPetal" + i, {diameter: 0.4}, scene); // 放大花的直径
-                flowerPetal.material = new BABYLON.StandardMaterial("flowerMaterial", scene);
-                flowerPetal.material.diffuseColor = new BABYLON.Color3(1, 0, 0);
-                flowerPetal.position.y = 12;
-                flowerPetal.position.x = Math.cos(angle) * flowerRadius;
-                flowerPetal.position.z = Math.sin(angle) * flowerRadius;
-                flowerPetal.parent = grassClump;
-            }
-
-            return grassClump;
-        }
-
-        // 创建密集草的函数
-        function createDenseGrass(scene) {
-            var denseGrassClump = new BABYLON.TransformNode("denseGrassClump", scene);
-
-            for (var i = 0; i < 7; i++) {
-                var grass = createSingleGrass(scene);
-                grass.rotation.y = (Math.PI / 3.5) * i;
-                grass.parent = denseGrassClump;
-            }
-
-            return denseGrassClump;
-        }
-
-        // 创建新类型草的函数
-        function createNewGrass(scene) {
-            var grassBlades = [];
-            for (var i = 0; i < 5; i++) {
-                var blade = BABYLON.MeshBuilder.CreateCylinder("blade", {
-                    height: 16, // 放大草的高度
-                    diameterTop: 0,
-                    diameterBottom: 1.6, // 放大草的底部直径
-                    tessellation: 3
-                }, scene);
-                blade.material = new BABYLON.StandardMaterial("newGrassMaterial", scene);
-                blade.material.diffuseColor = new BABYLON.Color3(0, 0.5, 0.2);
-                blade.position.y = 8;
-                blade.rotation.z = Math.PI / 6 * (i - 2);
-                grassBlades.push(blade);
-            }
-
-            var grassClump = new BABYLON.TransformNode("newGrassClump", scene);
-            grassBlades.forEach(blade => {
-                blade.parent = grassClump;
-            });
-
-            grassClump.position.y = -8;
-            return grassClump;
+            var combinedMesh = BABYLON.Mesh.MergeMeshes(items, true, false, null, false, true);
+            // combinedMesh.position.y = -6; // 确保草的y轴位置正确
+            return combinedMesh;
         }
 
         // 生成草的函数
-        function generateGrass(scene) {
-            grassContainer.dispose();
-            grassContainer = new BABYLON.TransformNode("grassContainer", scene);
-
+        function generateGrass(scene, grassCount) {
             for (var i = 0; i < grassCount; i++) {
-                var grass;
-                var rand = Math.random();
-                if (rand < 0.25) {
-                    grass = createSingleGrass(scene);
-                } else if (rand < 0.5) {
-                    grass = createFlowerGrass(scene);
-                } else if (rand < 0.75) {
-                    grass = createDenseGrass(scene);
-                } else {
-                    grass = createNewGrass(scene);
+                if (!grassTemplate) {
+                    grassTemplate = createSingleGrass(scene);
                 }
+
+                var grass = grassTemplate.createInstance("grass" + i);
                 grass.position.x = Math.random() * 1000 - 500;
                 grass.position.z = Math.random() * 1000 - 500;
-                grass.parent = grassContainer;
+                grass.position.y = -6;
+                grassInstances.push(grass);//将每个生成的草实例存储到 grassInstances 数组中，为了显示草的数量
             }
+            updateCountDisplay();
         }
 
         // 前进按钮事件
-        document.getElementById("moveForward").addEventListener("click", function() {
-            moveWorm("forward");
+        document.getElementById("moveForward").addEventListener("click", function () {
+            worms.forEach(worm => worm.move("forward"));
         });
 
         // 后退按钮事件
-        document.getElementById("moveBackward").addEventListener("click", function() {
-            moveWorm("backward");
+        document.getElementById("moveBackward").addEventListener("click", function () {
+            worms.forEach(worm => worm.move("backward"));
         });
-
         // 左移按钮事件
-        document.getElementById("moveLeft").addEventListener("click", function() {
-            moveWorm("left");
+        document.getElementById("moveLeft").addEventListener("click", function () {
+            worms.forEach(worm => worm.move("left"));
         });
 
         // 右移按钮事件
-        document.getElementById("moveRight").addEventListener("click", function() {
-            moveWorm("right");
+        document.getElementById("moveRight").addEventListener("click", function () {
+            worms.forEach(worm => worm.move("right"));
         });
 
+
         // 添加虫子按钮事件
-        document.getElementById("addWorm").addEventListener("click", function() {
+        document.getElementById("addWorm").addEventListener("click", function () {
             var count = parseInt(document.getElementById("wormCount").value);
             if (isNaN(count) || count <= 0) {
                 console.error("Invalid worm count");
                 return;
             }
+
+            //速度控制的事件监听
+            document.getElementById("speedControl").addEventListener("input", function (event) {
+                speed = parseFloat(event.target.value);
+                document.getElementById("speedDisplay").innerText = "当前速度: " + speed;
+                worms.forEach(worm => worm.updateSpeed(speed));
+            });
+
+
             for (var i = 0; i < count; i++) {
-                addWormInstance();
+                var wormInstance = wormTemplate.createInstance("worm" + (worms.length + i));
+                wormInstance.position.x = Math.random() * 1000 - 500;
+                wormInstance.position.y = 0.5;
+                wormInstance.position.z = Math.random() * 1000 - 500;
+                wormInstance.rotation.y = Math.random() * 2 * Math.PI; // 随机设置朝向
+                worms.push(new Worm(wormInstance));
             }
+            updateCountDisplay();
         });
-
         // 更新草数量按钮事件
-        document.getElementById("updateGrass").addEventListener("click", function() {
-            grassCount = parseInt(document.getElementById("grassCount").value) || grassCount;
-            generateGrass(scene);
+        document.getElementById("updateGrass").addEventListener("click", function () {
+            var count = parseInt(document.getElementById("grassCount").value);
+            if (isNaN(count) || count <= 0) {
+                console.error("Invalid grass count");
+                return;
+            }
+
+            generateGrass(scene, count);
         });
 
-        // 移动虫子的函数
-        function moveWorm(direction) {
-            worms.forEach(function(worm) {
-                var moveVector;
-                switch (direction) {
-                    case "forward":
-                        moveVector = new BABYLON.Vector3(0, 0, 1);
-                        break;
-                    case "backward":
-                        moveVector = new BABYLON.Vector3(0, 0, -1);
-                        break;
-                    case "left":
-                        moveVector = new BABYLON.Vector3(-1, 0, 0);
-                        break;
-                    case "right":
-                        moveVector = new BABYLON.Vector3(1, 0, 0);
-                        break;
-                }
+        // 控制虫子运动按钮事件
+        document.getElementById("toggleMovement").addEventListener("click", function () {
+            movementEnabled = !movementEnabled;
+            document.getElementById("toggleMovement").innerText = movementEnabled ? "暂停虫子运动" : "开启虫子运动";
+        });
 
-                var speed = 0.2;
-                worm.position.addInPlace(moveVector.scale(speed));
+
+        // 更新小地图
+        function updateMiniMap() {
+            miniMapContext.clearRect(0, 0, miniMapCanvas.width, miniMapCanvas.height);
+            miniMapContext.fillStyle = "red";
+            worms.forEach(worm => {
+                var x = (worm.position.x + groundSize / 2) / groundSize * miniMapCanvas.width;
+                var z = (worm.position.z + groundSize / 2) / groundSize * miniMapCanvas.height;
+                miniMapContext.beginPath();
+                miniMapContext.arc(x, z, 3, 0, 2 * Math.PI);
+                miniMapContext.fill();
             });
         }
     </script>
 </body>
+
 </html>
