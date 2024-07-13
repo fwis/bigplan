@@ -84,6 +84,10 @@
         var grassInstances = []; // 存储草实例的数组
         var movementEnabled = true; // 控制虫子运动的开关
         var groundSize = 2000; // 地面尺寸
+        var grassContainer = null;
+        var singleGrassTemplate = null;
+        var flowerGrassTemplate = null;
+        var denseGrassTemplate = null;
 
         // 虫子类定义
         class Worm {
@@ -113,7 +117,6 @@
                 }
                 this.clampToGround();
             }
-
 
             randomMove() {
                 let directions = ["forward", "backward", "left", "right"];
@@ -186,6 +189,8 @@
                 wormTemplate = BABYLON.Mesh.MergeMeshes(mymeshes, true, false, null, false, true);
             });
 
+            grassContainer = new BABYLON.TransformNode("grassContainer", scene);
+
             // 返回创建的场景对象
             return scene;
         };
@@ -205,8 +210,6 @@
         window.addEventListener("resize", function () {
             engine.resize();
         });
-
-        var grassTemplate = null;
 
         // 更新显示数量的函数
         function updateCountDisplay() {
@@ -232,61 +235,117 @@
             }
 
             var combinedMesh = BABYLON.Mesh.MergeMeshes(items, true, false, null, false, true);
-            // combinedMesh.position.y = -6; // 确保草的y轴位置正确
+            combinedMesh.position.y = -3;
+            combinedMesh.setEnabled(false);
+            return combinedMesh;
+        }
+
+        function createFlowerGrass(scene) {
+            var items = [];
+            for (var i = 0; i < 5; i++) {
+                var blade = BABYLON.MeshBuilder.CreateCylinder("blade", {
+                    height: 12,
+                    diameterTop: 0,
+                    diameterBottom: 1.2,
+                    tessellation: 3
+                }, scene);
+                blade.material = new BABYLON.StandardMaterial("grassMaterial", scene);
+                blade.material.diffuseColor = new BABYLON.Color3(0, 1, 0);
+                blade.position.y = 6;
+                blade.rotation.z = Math.PI / 6 * (i - 2);
+                items.push(blade);
+            }
+            var flowerRadius = 0.6;
+            var flowerCount = 5;
+            for (var i = 0; i < flowerCount; i++) {
+                var angle = (i / flowerCount) * 2 * Math.PI;
+                var flowerPetal = BABYLON.MeshBuilder.CreateSphere("flowerPetal" + i, { diameter: 0.4 }, scene);
+                flowerPetal.material = new BABYLON.StandardMaterial("flowerMaterial", scene);
+                flowerPetal.material.diffuseColor = new BABYLON.Color3(1, 0, 0);
+                flowerPetal.position.y = 12;
+                flowerPetal.position.x = Math.cos(angle) * flowerRadius;
+                flowerPetal.position.z = Math.sin(angle) * flowerRadius;
+                items.push(flowerPetal);
+            }
+            var combinedMesh = BABYLON.Mesh.MergeMeshes(items, true, false, null, false, true);
+            combinedMesh.position.y = -3;
+            combinedMesh.setEnabled(false);
+            return combinedMesh;
+        }
+
+        function createDenseGrass(scene) {
+            var items = [];
+            for (var i = 0; i < 7; i++) {
+                var grass = createSingleGrass(scene);
+                grass.scaling = new BABYLON.Vector3(1, 1.5, 1); // 将草丛高度增加到2倍
+                grass.rotation.y = (Math.PI / 3.5) * i;
+                items.push(grass);
+            }
+            var combinedMesh = BABYLON.Mesh.MergeMeshes(items, true, false, null, false, true);
+            combinedMesh.position.y = -3;
+            combinedMesh.setEnabled(false);
             return combinedMesh;
         }
 
         // 生成草的函数
         function generateGrass(scene, grassCount) {
+            if (grassContainer) {
+                grassContainer.dispose();
+            }
+            grassContainer = new BABYLON.TransformNode("grassContainer", scene);
+
             for (var i = 0; i < grassCount; i++) {
-                if (!grassTemplate) {
-                    grassTemplate = createSingleGrass(scene);
+                var grass;
+                var rand = Math.random();
+
+                if (!singleGrassTemplate) {
+                    singleGrassTemplate = createSingleGrass(scene);
+                }
+                if (!flowerGrassTemplate) {
+                    flowerGrassTemplate = createFlowerGrass(scene);
+                }
+                if (!denseGrassTemplate) {
+                    denseGrassTemplate = createDenseGrass(scene);
                 }
 
-                var grass = grassTemplate.createInstance("grass" + i);
+                if (rand < 0.33) {
+                    grass = singleGrassTemplate.createInstance("singleGrass" + i);
+                } else if (rand < 0.66) {
+                    grass = flowerGrassTemplate.createInstance("flowerGrass" + i);
+                } else {
+                    grass = denseGrassTemplate.createInstance("denseGrass" + i);
+                }
+
                 grass.position.x = Math.random() * 1000 - 500;
                 grass.position.z = Math.random() * 1000 - 500;
+                grass.parent = grassContainer;
                 grass.position.y = -6;
-                grassInstances.push(grass);//将每个生成的草实例存储到 grassInstances 数组中，为了显示草的数量
+                grassInstances.push(grass); // 添加到实例数组
             }
             updateCountDisplay();
         }
 
-        // 前进按钮事件
         document.getElementById("moveForward").addEventListener("click", function () {
             worms.forEach(worm => worm.move("forward"));
         });
 
-        // 后退按钮事件
         document.getElementById("moveBackward").addEventListener("click", function () {
             worms.forEach(worm => worm.move("backward"));
         });
-        // 左移按钮事件
         document.getElementById("moveLeft").addEventListener("click", function () {
             worms.forEach(worm => worm.move("left"));
         });
 
-        // 右移按钮事件
         document.getElementById("moveRight").addEventListener("click", function () {
             worms.forEach(worm => worm.move("right"));
         });
 
-
-        // 添加虫子按钮事件
         document.getElementById("addWorm").addEventListener("click", function () {
             var count = parseInt(document.getElementById("wormCount").value);
             if (isNaN(count) || count <= 0) {
                 console.error("Invalid worm count");
                 return;
             }
-
-            //速度控制的事件监听
-            document.getElementById("speedControl").addEventListener("input", function (event) {
-                speed = parseFloat(event.target.value);
-                document.getElementById("speedDisplay").innerText = "当前速度: " + speed;
-                worms.forEach(worm => worm.updateSpeed(speed));
-            });
-
 
             for (var i = 0; i < count; i++) {
                 var wormInstance = wormTemplate.createInstance("worm" + (worms.length + i));
@@ -298,15 +357,15 @@
             }
             updateCountDisplay();
         });
-        // 更新草数量按钮事件
+
         document.getElementById("updateGrass").addEventListener("click", function () {
-            var count = parseInt(document.getElementById("grassCount").value);
-            if (isNaN(count) || count <= 0) {
+            var grassCount = parseInt(document.getElementById("grassCount").value);
+            if (isNaN(grassCount) || grassCount <= 0) {
                 console.error("Invalid grass count");
                 return;
             }
 
-            generateGrass(scene, count);
+            generateGrass(scene, grassCount);
         });
 
         // 控制虫子运动按钮事件
@@ -315,6 +374,12 @@
             document.getElementById("toggleMovement").innerText = movementEnabled ? "暂停虫子运动" : "开启虫子运动";
         });
 
+        // 速度控制事件
+        document.getElementById("speedControl").addEventListener("input", function (event) {
+            var speed = parseFloat(event.target.value);
+            document.getElementById("speedDisplay").innerText = "当前速度: " + speed;
+            worms.forEach(worm => worm.updateSpeed(speed));
+        });
 
         // 更新小地图
         function updateMiniMap() {
