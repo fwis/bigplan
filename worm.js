@@ -3,7 +3,7 @@ class Worm {
         this.wormMesh = wormMesh;
         this.world = world;
         this.showBoundary = showBoundary;
-
+        //that.wormTemplate.isVisible = false;
         if (showBoundary) {
             const bi = this.wormMesh.getBoundingInfo();
             const bb = bi.boundingBox;
@@ -29,10 +29,11 @@ class Worm {
     }
 
     Move() {
+        //that.wormTemplate.isVisible = true;
         this.wormMesh.rotation.y += Math.random() * Math.PI/4 - Math.PI/8;
 
         const wormLen = 8;
-        var speed = this.world.wormSpeed; // 使用 world 的 wormSpeed
+        var speed = this.world.WormSpeed;
         const vx = wormLen * Math.cos(this.wormMesh.rotation.y);
         const vz = wormLen * Math.sin(this.wormMesh.rotation.y);
 
