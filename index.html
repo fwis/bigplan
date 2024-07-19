@@ -101,7 +101,7 @@
             //camera.attachControl(canvas, true);
             camera = new CustomCamera("customCamera", new BABYLON.Vector3(0, 100, 0), scene);
             camera.ellipsoid = new BABYLON.Vector3(1, 1, 1);
-            camera.checkCollisions = true;
+            camera.checkCollisions = false;
             camera.attachControl(canvas, false);
 
             var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
@@ -118,7 +118,7 @@
             groundMaterial.diffuseTexture.uScale = 50;
             groundMaterial.diffuseTexture.vScale = 50;
             ground.material = groundMaterial;
-            ground.checkCollisions = true;
+            ground.checkCollisions = false;
 
             // 创建天空盒
             var skybox = BABYLON.MeshBuilder.CreateBox("skyBox", {
@@ -196,7 +196,7 @@
 
             const pos = camera.position;
             pos.x = Math.max(-worldSize, Math.min(worldSize, pos.x));
-            //pos.y = Math.max(-limit, Math.min(limit, pos.y));
+            pos.y = Math.max(2, pos.y);
             pos.z = Math.max(-worldSize, Math.min(worldSize, pos.z));
         });
 
