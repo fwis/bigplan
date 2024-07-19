@@ -3,34 +3,16 @@ class Worm {
         this.wormMesh = wormMesh;
         this.world = world;
         this.showBoundary = showBoundary;
-        //that.wormTemplate.isVisible = false;
-        if (showBoundary) {
-            const bi = this.wormMesh.getBoundingInfo();
-            const bb = bi.boundingBox;
-    
-            this.plane = BABYLON.MeshBuilder.CreatePlane("plane", {
-                width: (bb.maximum.x - bb.minimum.x),
-                height: (bb.maximum.z - bb.minimum.z)
-            }, scene);
-            this.plane.position.x = this.wormMesh.position.x;
-            this.plane.position.z = this.wormMesh.position.z;
-            this.plane.rotation.y = this.wormMesh.rotation.y;
-            this.plane.rotation.x = Math.PI / 2;
-            this.plane.position.y = 3;
-        }
+        this.wormMesh.showBoundingBox = false;
+        this.eatCooldown = 0; // 冷却时间属性，初始化为0
     }
 
     get Name() {
         return this.wormMesh.Id;
     }
 
-    get BoundRect() {
-
-    }
-
     Move() {
-        //that.wormTemplate.isVisible = true;
-        this.wormMesh.rotation.y += Math.random() * Math.PI/4 - Math.PI/8;
+        this.wormMesh.rotation.y += Math.random() * Math.PI / 4 - Math.PI / 8;
 
         const wormLen = 8;
         var speed = this.world.WormSpeed;
@@ -38,9 +20,8 @@ class Worm {
         const vz = wormLen * Math.sin(this.wormMesh.rotation.y);
 
         var v = new BABYLON.Vector3(-vx, 0, vz);
-        //this.wormMesh.moveWithCollisions(v.scale(speed));
         this.wormMesh.position.addInPlace(v.scale(speed));
-        
+
         const boundary = this.world.WorldSize / 2 - wormLen;
 
         if (this.wormMesh.position.x > boundary) {
@@ -58,29 +39,76 @@ class Worm {
         if (this.wormMesh.position.z < -boundary) {
             this.wormMesh.position.z = -boundary;
         }
+    }
 
-        if (this.showBoundary) {
-            this.plane.position.x = this.wormMesh.position.x;
-            this.plane.position.z = this.wormMesh.position.z;
-            this.plane.rotation.y = this.wormMesh.rotation.y;
-            this.plane.rotation.x = Math.PI / 2;
-            this.plane.position.y = 3;
+    _checkCollision(position) {
+        const nextBoundingBox = new BABYLON.BoundingBox(
+          position.subtract(this.wormMesh.scaling.scale(0.5)),
+          position.add(this.wormMesh.scaling.scale(0.5))
+        );
+    
+        var i = this.world.worms.length;
+        while (i--) {
+          const otherWorm = this.world.worms[i];
+          if (otherWorm !== this) {
+            const otherBoundingBox = otherWorm.wormMesh.getBoundingInfo().boundingBox;
+            if (BABYLON.BoundingBox.Intersects(nextBoundingBox, otherBoundingBox)) {
+              return otherWorm;
+            }
+          }
+        }
+        return null;
+      }
+    Eat() {
+        if (this.eatCooldown > 0) {
+            this.eatCooldown--;
+            return;
+        }
+
+        const wormBoundingBox = this.wormMesh.getBoundingInfo().boundingBox;
+
+        var i = this.world.grasses.length;
+        while (i--) {
+            const grass = this.world.grasses[i];
+            const grassBoundingBox = grass.grassMesh.getBoundingInfo().boundingBox;
+            const intersects = BABYLON.BoundingBox.Intersects(wormBoundingBox, grassBoundingBox);
+
+            if (intersects) {
+                if (grass.grassMesh.name.startsWith("grassDense")) {
+                    this.world.CreateSingleGrass(grass.grassMesh.position.x, grass.grassMesh.position.z, grass.grassMesh.rotation.y);
+                } else if (grass.grassMesh.name.startsWith("grassFlower")) {
+                    this.world.CreateSingleGrass(grass.grassMesh.position.x, grass.grassMesh.position.z, grass.grassMesh.rotation.y);
+                }
+                grass.grassMesh.dispose();
+                this.world.grasses.splice(i, 1);
+
+                this.world.grassRespawnFrames.push({
+                    x: grass.grassMesh.position.x,
+                    z: grass.grassMesh.position.z,
+                    frame: this.world.frameCounter + this.world.respawnFrames
+                });
+
+                this.eatCooldown = 50; // 设置冷却时间为50帧
+            }
         }
     }
-
-    Eat() {
-
-    }
-
     Attack() {
+        const collidedWorm = this._checkCollision(this.wormMesh.position);
+        if (collidedWorm) {
+          // 随机选择一只虫子死亡
+          const wormToDie = Math.random() < 0.5 ? this : collidedWorm;
+    
+          // 删除死亡的虫子
+          wormToDie.wormMesh.dispose();
+          const index = this.world.worms.indexOf(wormToDie);
+          if (index > -1) {
+            this.world.worms.splice(index, 1);
+          }
+        }
+      }
+    
 
-    }
+    Think() {}
 
-    Think() {
-
-    }
-
-    Probe() {
-
-    }
+    Probe() {}
 }
