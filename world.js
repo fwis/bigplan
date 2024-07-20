@@ -119,8 +119,19 @@ class World {
 
         const worm = new Worm(wormMesh, this);
         that.worms.push(worm);
+        this.registerClickHandler(wormMesh);  // 调用 registerClickHandler方法注册点击事件
         return worm;
     }
+
+    registerClickHandler(wormMesh) {
+        wormMesh.actionManager = new BABYLON.ActionManager(this.scene);
+        wormMesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+          BABYLON.ActionManager.OnPickTrigger,
+          () => {
+            document.getElementById("selectedWormId").textContent = `所选虫子名称: ${wormMesh.name}`;
+          }
+        ));
+      }
 
     _buildGrassMesh0() {
         const that = this;
