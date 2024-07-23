@@ -133,7 +133,7 @@ class World {
         ));
       }
 
-    _buildGrassMesh0() {
+      _buildGrassMesh0() {
         const that = this;
         var items = [];
         for (var i = 0; i < 5; i++) {
@@ -244,6 +244,7 @@ class World {
         return flowerGrassMesh;
     }
 
+
     LoadGrassModel(grassURL) {
         this.grassTemplate0 = this._buildGrassMesh0();
         this.grassTemplate0.isVisible = false;
@@ -264,7 +265,7 @@ class World {
         grassMesh.position.x = x;
         grassMesh.position.z = z;
         grassMesh.position.y = this.groundY0;
-        grassMesh.rotation.y = rotation;
+        grassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
         grassMesh.checkCollisions = false;
 
         const grass = new Grass(grassMesh, this);
@@ -280,7 +281,7 @@ class World {
         denseGrassMesh.position.x = x;
         denseGrassMesh.position.z = z;
         denseGrassMesh.position.y = this.groundY0;
-        denseGrassMesh.rotation.y = rotation;
+        denseGrassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
         denseGrassMesh.checkCollisions = false;
         const grass = new Grass(denseGrassMesh, this);
         this.grasses.push(grass);
@@ -296,12 +297,13 @@ class World {
         flowerGrassMesh.position.x = x;
         flowerGrassMesh.position.z = z;
         flowerGrassMesh.position.y = this.groundY0;
-        flowerGrassMesh.rotation.y = rotation;
+        flowerGrassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
         flowerGrassMesh.checkCollisions = false;
         const grass = new Grass(flowerGrassMesh, this);
         this.grasses.push(grass);
         return grass;
     }
+
 
     _updateCountDisplay() {
         document.getElementById(
