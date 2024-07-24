@@ -73,6 +73,7 @@
     <script src="world.js"></script>
     <script src="grass.js"></script>
     <script src="worm.js"></script>
+    <script src="uniformGrid.js"></script> 
 </head>
 
 <body>
@@ -169,7 +170,7 @@
                 const z = Math.random() * world.WorldSize - world.WorldSize / 2;
                 const rotation = Math.random() * Math.PI * 2 - Math.PI;
 
-                world.CreateWorm(x, z, rotation);
+                world.CreateWorm(x, z, rotation, true);//true关闭虫子颜色
 
             }
         });
@@ -221,6 +222,11 @@
         // 开始渲染循环
         engine.runRenderLoop(function () {
             scene.render();
+            world.worms.forEach(worm => {
+                if (world.wormMovementEnabled) {
+                    worm.Move();
+                }
+            });
             world.RunFrame();
         });
 

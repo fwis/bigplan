@@ -39,6 +39,8 @@ class World {
 
     this.isMiniMapVisible = true; // 小地图可见状态
     this.isTrendChartVisible = true; // 趋势图可见状态
+
+    this.uniformGrid = new UniformGrid(50, worldSize); // 单元格大小，需调整
   }
 
   LoadWormModel(wormModelURL) {
@@ -122,6 +124,7 @@ class World {
 
     const worm = new Worm(wormMesh, this);
     that.worms.push(worm);
+    this.uniformGrid.add(worm); // 添加到Uniform Grid
     this.registerClickHandler(wormMesh); // 调用 registerClickHandler方法注册点击事件
     return worm;
   }
