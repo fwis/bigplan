@@ -27,6 +27,7 @@ class Worm {
         if (this.wormMesh.position.x > boundary) {
             this.wormMesh.position.x = boundary;
         }
+<<<<<<< HEAD
 
         if (this.wormMesh.position.x < -boundary) {
             this.wormMesh.position.x = -boundary;
@@ -81,12 +82,83 @@ class Worm {
         }
     }
 
+=======
+
+        if (this.wormMesh.position.x < -boundary) {
+            this.wormMesh.position.x = -boundary;
+        }
+
+        if (this.wormMesh.position.z > boundary) {
+            this.wormMesh.position.z = boundary;
+        }
+
+        if (this.wormMesh.position.z < -boundary) {
+            this.wormMesh.position.z = -boundary;
+        }
+    }
+
+    _checkCollision(position) {
+        const nextBoundingBox = new BABYLON.BoundingBox(
+          position.subtract(this.wormMesh.scaling.scale(0.5)),
+          position.add(this.wormMesh.scaling.scale(0.5))
+        );
+    
+        var i = this.world.worms.length;
+        while (i--) {
+          const otherWorm = this.world.worms[i];
+          if (otherWorm !== this) {
+            const otherBoundingBox = otherWorm.wormMesh.getBoundingInfo().boundingBox;
+            if (BABYLON.BoundingBox.Intersects(nextBoundingBox, otherBoundingBox)) {
+              return otherWorm;
+            }
+          }
+        }
+        return null;
+      }
+    Eat() {
+        if (this.eatCooldown > 0) {
+            this.eatCooldown--;
+            return;
+        }
+
+        const wormBoundingBox = this.wormMesh.getBoundingInfo().boundingBox;
+
+        var i = this.world.grasses.length;
+        while (i--) {
+            const grass = this.world.grasses[i];
+            const grassBoundingBox = grass.grassMesh.getBoundingInfo().boundingBox;
+            const intersects = BABYLON.BoundingBox.Intersects(wormBoundingBox, grassBoundingBox);
+
+            if (intersects) {
+                if (grass.grassMesh.name.startsWith("grassDense")) {
+                    this.world.CreateSingleGrass(grass.grassMesh.position.x, grass.grassMesh.position.z, grass.grassMesh.rotation.y);
+                } else if (grass.grassMesh.name.startsWith("grassFlower")) {
+                    this.world.CreateSingleGrass(grass.grassMesh.position.x, grass.grassMesh.position.z, grass.grassMesh.rotation.y);
+                }
+                grass.grassMesh.dispose();
+                this.world.grasses.splice(i, 1);
+
+                this.world.grassRespawnFrames.push({
+                    x: grass.grassMesh.position.x,
+                    z: grass.grassMesh.position.z,
+                    frame: this.world.frameCounter + this.world.respawnFrames
+                });
+
+                this.eatCooldown = 50; // 设置冷却时间为50帧
+            }
+        }
+    }
+>>>>>>> parent of 3ed4c76 (改了虫子吃草碰撞用了四叉树)
     Attack() {
         const collidedWorm = this._checkCollision(this.wormMesh.position);
         if (collidedWorm) {
           // 随机选择一只虫子死亡
           const wormToDie = Math.random() < 0.5 ? this : collidedWorm;
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> parent of 3ed4c76 (改了虫子吃草碰撞用了四叉树)
           // 删除死亡的虫子
           wormToDie.wormMesh.dispose();
           const index = this.world.worms.indexOf(wormToDie);
@@ -94,6 +166,7 @@ class Worm {
             this.world.worms.splice(index, 1);
           }
         }
+<<<<<<< HEAD
     }
 
     _checkCollision(position) {
@@ -116,5 +189,12 @@ class Worm {
     }
 
     Think() {}
+=======
+      }
+    
+
+    Think() {}
+
+>>>>>>> parent of 3ed4c76 (改了虫子吃草碰撞用了四叉树)
     Probe() {}
 }
