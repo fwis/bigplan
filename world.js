@@ -309,16 +309,7 @@ class World {
     this.grasses.push(grass);
     return grass;
   }
-
-  _updateCountDisplay() {
-    document.getElementById(
-      "wormCountDisplay"
-    ).textContent = `虫子数量: ${this.worms.length}`;
-    document.getElementById(
-      "grassCountDisplay"
-    ).textContent = `草的数量: ${this.grasses.length}`;
-  }
-
+ 
   ToggleWormMovement() {
     this.wormMovementEnabled = !this.wormMovementEnabled;
     this._updateToggleButton();
@@ -350,8 +341,6 @@ class World {
     chartWidth,
     chartHeight,
     singleGrassValues,
-    denseGrassValues,
-    flowerGrassValues,
     wormValues
   ) {
     const padding = 2;
@@ -359,13 +348,9 @@ class World {
     const plotHeight = chartHeight - 2 * padding;
 
     const maxSingleValue = Math.max(...singleGrassValues);
-    const maxDenseValue = Math.max(...denseGrassValues);
-    const maxFlowerValue = Math.max(...flowerGrassValues);
     const maxWormValue = Math.max(...wormValues);
     const maxValue = Math.max(
       maxSingleValue,
-      maxDenseValue,
-      maxFlowerValue,
       maxWormValue
     );
 
@@ -388,15 +373,11 @@ class World {
     };
 
     drawLine(singleGrassValues, "green");
-    drawLine(denseGrassValues, "blue");
-    drawLine(flowerGrassValues, "red");
     drawLine(wormValues, "purple");
 
     ctx.font = "12px Arial";
     ctx.fillText(`总数草: ${maxSingleValue}`, padding, padding + 12);
-    ctx.fillText(`草丛: ${maxDenseValue}`, padding, padding + 24);
-    ctx.fillText(`带花的草: ${maxFlowerValue}`, padding, padding + 36);
-    ctx.fillText(`虫子: ${maxWormValue}`, padding, padding + 48);
+    ctx.fillText(`总数虫: ${maxWormValue}`, padding, padding + 48);
   }
 
   RunFrame(fps) {
@@ -418,31 +399,19 @@ class World {
 
       if (!this.singleGrassValues) {
         this.singleGrassValues = [];
-        this.denseGrassValues = [];
-        this.flowerGrassValues = [];
         this.wormValues = [];
       }
 
       const singleCount = this.grasses.filter((grass) =>
         grass.grassMesh.name.startsWith("grass")
       ).length;
-      const denseCount = this.grasses.filter((grass) =>
-        grass.grassMesh.name.startsWith("grassDense")
-      ).length;
-      const flowerCount = this.grasses.filter((grass) =>
-        grass.grassMesh.name.startsWith("grassFlower")
-      ).length;
       const wormCount = this.worms.length;
 
       this.singleGrassValues.push(singleCount);
-      this.denseGrassValues.push(denseCount);
-      this.flowerGrassValues.push(flowerCount);
       this.wormValues.push(wormCount);
 
       if (this.singleGrassValues.length > 500) {
         this.singleGrassValues.shift();
-        this.denseGrassValues.shift();
-        this.flowerGrassValues.shift();
         this.wormValues.shift();
       }
 
@@ -451,8 +420,6 @@ class World {
         this.trendChart.width,
         this.trendChart.height,
         this.singleGrassValues,
-        this.denseGrassValues,
-        this.flowerGrassValues,
         this.wormValues
       );
     }
@@ -477,17 +444,17 @@ class World {
     this.frameCounter++;
 
     // 每过一定帧数尝试生长新的草，频率与FPS相关
-    const growInterval = Math.max(1, Math.floor(1000 / fps));
+   /* const growInterval = Math.max(1, Math.floor(1000 / fps));
     if (this.frameCounter >= growInterval) {
       this.frameCounter = 0; // 重置帧计数器
       this._randomlyGrowGrass();
     }
 
     // 更新草的重生时间
-    this._updateGrassRespawn();
+    this._updateGrassRespawn();*/
   }
 
-  _randomlyGrowGrass() {
+  /* _randomlyGrowGrass() {
     let x, z;
     let inExistingArea = true;
     while (inExistingArea) {
@@ -532,5 +499,5 @@ class World {
         return distance < minDistance;
       })
     );
-  }
+  }*/
 }
