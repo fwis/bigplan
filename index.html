@@ -72,8 +72,11 @@
     <script src="camera.js"></script>
     <script src="world.js"></script>
     <script src="grass.js"></script>
-    <script src="worm.js"></script>
-    <script src="uniformGrid.js"></script> 
+    <script src="worm1.js"></script>
+    <script src="Grid.js"></script>
+    <script src="BoundingBoxUtils.js"></script>
+    <script src="trendpanel.js"></script>
+
 </head>
 
 <body>
@@ -128,7 +131,6 @@
             light1.specular = new BABYLON.Color3(0.3, 0.3, 0.3); // 上半球光照强度
             light1.intensity = 1.0;
 
-
             // 创建地面
             var ground = BABYLON.MeshBuilder.CreateGround("ground", { width: world.WorldSize, height: world.WorldSize }, scene);
             var groundMaterial = new BABYLON.StandardMaterial("groundMaterial", scene);
@@ -156,7 +158,6 @@
 
             world.LoadGrassModel("");
             world.LoadWormModel("worm2.glb");
-
 
             return scene;
         };

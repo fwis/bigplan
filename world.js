@@ -1,503 +1,426 @@
 class World {
-  constructor(worldSize, miniMapCanvas, trendChart) {
-    this.WorldSize = worldSize;
-    this.WormSpeed = 0.05;
-    this.scene = null;
-    this.wormTemplate = null;
-    this.wormIndex = 0;
-    this.groundY = 0.5;
-    this.wormMovementEnabled = true;
+	constructor(worldSize, miniMapCanvas, trendChart) {
+		this.WorldSize = worldSize;
+		this.WormSpeed = 0.05;
+		this.scene = null;
+		this.wormTemplate = null;
+		this.wormIndex = 0;
+		this.groundY = 0.5;
+		this.wormMovementEnabled = true;
 
-    this.grassTemplate0 = null;
-    this.grassTemplate1 = null;
-    this.grassTemplate2 = null;
-    this.groundY0 = -6;
-    this.grassIndex = 0;
+		this.grassTemplate0 = null;
+		this.grassTemplate1 = null;
+		this.grassTemplate2 = null;
+		this.groundY0 = -6;
+		this.grassIndex = 0;
 
-    this.worms = [];
-    this.grasses = [];
-    this.grassRespawnFrames = [];
-    this.respawnFrames = 300;
+		this.worms = [];
+		this.grasses = [];
+		this.grassRespawnFrames = [];
+		this.respawnFrames = 300;
 
-    this.singleGrassCount = [];
-    this.denseGrassCount = [];
-    this.flowerGrassCount = [];
-    this.wormCount = [];
+		this.singleGrassCount = [];
+		this.denseGrassCount = [];
+		this.flowerGrassCount = [];
+		this.wormCount = [];
 
-    this.miniMapCanvas = miniMapCanvas;
-    this.miniMapContext = miniMapCanvas.getContext("2d");
-    this.miniMapWidth = this.miniMapCanvas.width;
-    this.miniMapHeight = this.miniMapCanvas.height;
+		this.miniMapCanvas = miniMapCanvas;
+		this.miniMapContext = miniMapCanvas.getContext("2d");
+		this.miniMapWidth = this.miniMapCanvas.width;
+		this.miniMapHeight = this.miniMapCanvas.height;
 
-    this.miniMapScale = this.miniMapWidth / this.WorldSize;
+		this.miniMapScale = this.miniMapWidth / this.WorldSize;
 
-    this.trendChart = trendChart;
-    this.trendChartContext = this.trendChart.getContext("2d");
+		this.trendChart = trendChart;
+		this.trendChartContext = this.trendChart.getContext("2d");
 
-    this.frameCounter = 0;
-    this.growInterval = 100;
+		this.frameCounter = 0;
+		this.growInterval = 100;
 
-    this.isMiniMapVisible = true; // 小地图可见状态
-    this.isTrendChartVisible = true; // 趋势图可见状态
+		this.isMiniMapVisible = true; // 小地图可见状态
+		this.isTrendChartVisible = true; // 趋势图可见状态
 
-    this.uniformGrid = new UniformGrid(50, worldSize); // 单元格大小，需调整
-  }
+		this.fpsValues = []; // 添加一个数组来存储 FPS 值
+		this.previousTime = performance.now(); // 用于 FPS 计算的初始时间
 
-  LoadWormModel(wormModelURL) {
-    const that = this;
-    BABYLON.SceneLoader.LoadAssetContainer(
-      "",
-      wormModelURL,
-      world.scene,
-      function (container) {
-        var mymeshes = container.meshes.filter((mesh) => mesh.geometry);
-        const disposeSource = true;
-        const allow32BitsIndices = false;
-        const meshSubclass = null;
-        const subdivideWithSubMeshes = false;
-        const multiMultiMaterial = true;
 
-        that.wormTemplate = BABYLON.Mesh.MergeMeshes(
-          mymeshes,
-          disposeSource,
-          allow32BitsIndices,
-          meshSubclass,
-          subdivideWithSubMeshes,
-          multiMultiMaterial
-        );
 
-        that.wormTemplate.isVisible = false;
-      }
-    );
-  }
 
-  CreateWorm(x, z, rotation, usingInstance) {
-    const that = this;
 
-    const name = "worm_" + that.wormIndex;
-    that.wormIndex++;
+    // 创建趋势面板实例
+    this.trendPanel = new TrendPanel(trendChart);
+	}
 
-    var wormMesh = null;
+	LoadWormModel(wormModelURL) {
+		const that = this;
+		BABYLON.SceneLoader.LoadAssetContainer(
+			"",
+			wormModelURL,
+			world.scene,
+			function (container) {
+				var mymeshes = container.meshes.filter((mesh) => mesh.geometry);
+				const disposeSource = true;
+				const allow32BitsIndices = false;
+				const meshSubclass = null;
+				const subdivideWithSubMeshes = false;
+				const multiMultiMaterial = true;
 
-    if (usingInstance) {
-      wormMesh = that.wormTemplate.createInstance(name);
-    } else {
-      wormMesh = that.wormTemplate.clone(name);
-    }
+				that.wormTemplate = BABYLON.Mesh.MergeMeshes(
+					mymeshes,
+					disposeSource,
+					allow32BitsIndices,
+					meshSubclass,
+					subdivideWithSubMeshes,
+					multiMultiMaterial
+				);
 
-    wormMesh.position.x = x;
-    wormMesh.position.y = that.groundY;
-    wormMesh.rotation.y = rotation;
-    wormMesh.position.z = z;
-    wormMesh.checkCollisions = false;
-    wormMesh.isVisible = true;
+				that.wormTemplate.isVisible = false;
+			}
+		);
+	}
 
-    if (!usingInstance) {
-      const material1 = new BABYLON.StandardMaterial("material1", scene);
-      material1.diffuseColor = new BABYLON.Color3(
-        Math.random(),
-        Math.random(),
-        Math.random()
-      );
+	CreateWorm(x, z, rotation, usingInstance) {
+		const that = this;
 
-      const material2 = new BABYLON.StandardMaterial("material2", scene);
-      material2.diffuseColor = new BABYLON.Color3(
-        Math.random(),
-        Math.random(),
-        Math.random()
-      );
+		const name = "worm_" + that.wormIndex;
+		that.wormIndex++;
 
-      const material_eye = new BABYLON.StandardMaterial("material_eye", scene);
-      material_eye.diffuseColor = new BABYLON.Color3(
-        Math.random(),
-        Math.random(),
-        Math.random()
-      );
+		var wormMesh = null;
 
-      const multiMaterial = new BABYLON.MultiMaterial("multiMaterial", scene);
-      multiMaterial.subMaterials.push(material1);
-      multiMaterial.subMaterials.push(material2);
-      multiMaterial.subMaterials.push(material_eye);
+		if (usingInstance) {
+			wormMesh = that.wormTemplate.createInstance(name);
+		} else {
+			wormMesh = that.wormTemplate.clone(name);
+		}
 
-      wormMesh.material = multiMaterial;
-    }
+		if (!usingInstance) {
+			const material1 = new BABYLON.StandardMaterial("material1", scene);
+			material1.diffuseColor = new BABYLON.Color3(
+				Math.random(),
+				Math.random(),
+				Math.random()
+			);
 
-    const worm = new Worm(wormMesh, this);
-    that.worms.push(worm);
-    this.uniformGrid.add(worm); // 添加到Uniform Grid
-    this.registerClickHandler(wormMesh); // 调用 registerClickHandler方法注册点击事件
-    return worm;
-  }
+			const material2 = new BABYLON.StandardMaterial("material2", scene);
+			material2.diffuseColor = new BABYLON.Color3(
+				Math.random(),
+				Math.random(),
+				Math.random()
+			);
 
-  registerClickHandler(wormMesh) {
-    wormMesh.actionManager = new BABYLON.ActionManager(this.scene);
-    wormMesh.actionManager.registerAction(
-      new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, () => {
-        document.getElementById(
-          "selectedWormId"
-        ).textContent = `所选虫子名称: ${wormMesh.name}`;
-      })
-    );
-  }
+			const material_eye = new BABYLON.StandardMaterial("material_eye", scene);
+			material_eye.diffuseColor = new BABYLON.Color3(
+				Math.random(),
+				Math.random(),
+				Math.random()
+			);
 
-  _buildGrassMesh0() {
-    const that = this;
-    var items = [];
-    for (var i = 0; i < 5; i++) {
-      var blade = BABYLON.MeshBuilder.CreateCylinder(
-        "blade",
-        {
-          height: 12,
-          diameterTop: 0,
-          diameterBottom: 1.2,
-          tessellation: 3,
-        },
-        that.scene
-      );
-      blade.material = new BABYLON.StandardMaterial(
-        "grassMaterial",
-        that.scene
-      );
-      blade.material.diffuseColor = new BABYLON.Color3(0, 1, 0);
-      blade.position.y = 6;
-      blade.rotation.z = (Math.PI / 6) * (i - 2);
-      items.push(blade);
-    }
+			const multiMaterial = new BABYLON.MultiMaterial("multiMaterial", scene);
+			multiMaterial.subMaterials.push(material1);
+			multiMaterial.subMaterials.push(material2);
+			multiMaterial.subMaterials.push(material_eye);
 
-    var grassMesh = BABYLON.Mesh.MergeMeshes(
-      items,
-      true,
-      false,
-      null,
-      false,
-      true
-    );
+			wormMesh.material = multiMaterial;
+		}
 
-    return grassMesh;
-  }
+		const worm = new Worm1(wormMesh, this, x, this.groundY, z, rotation, this.scene);
+		that.worms.push(worm);
+		return worm;
+	}
 
-  _buildDenseGrassMesh() {
-    const that = this;
-    var items = [];
-    for (var i = 0; i < 7; i++) {
-      var grass = that._buildGrassMesh0();
-      grass.scaling = new BABYLON.Vector3(1, 1, 1);
-      grass.rotation.y = (Math.PI / 3.5) * i;
-      items.push(grass);
-    }
-    var denseGrassMesh = BABYLON.Mesh.MergeMeshes(
-      items,
-      true,
-      false,
-      null,
-      false,
-      true
-    );
-    denseGrassMesh.position.y = -6;
-    return denseGrassMesh;
-  }
+	_buildGrassMesh0() {
+		const that = this;
+		var items = [];
+		for (var i = 0; i < 5; i++) {
+			var blade = BABYLON.MeshBuilder.CreateCylinder(
+				"blade",
+				{
+					height: 12,
+					diameterTop: 0,
+					diameterBottom: 1.2,
+					tessellation: 3,
+				},
+				that.scene
+			);
+			blade.material = new BABYLON.StandardMaterial(
+				"grassMaterial",
+				that.scene
+			);
+			blade.material.diffuseColor = new BABYLON.Color3(0, 1, 0);
+			blade.position.y = 6;
+			blade.rotation.z = (Math.PI / 6) * (i - 2);
+			items.push(blade);
+		}
 
-  _buildFlowerGrassMesh() {
-    const that = this;
-    var items = [];
-    for (var i = 0; i < 5; i++) {
-      var blade = BABYLON.MeshBuilder.CreateCylinder(
-        "blade",
-        {
-          height: 12,
-          diameterTop: 0,
-          diameterBottom: 1.2,
-          tessellation: 3,
-        },
-        that.scene
-      );
-      blade.material = new BABYLON.StandardMaterial(
-        "grassMaterial",
-        that.scene
-      );
-      blade.material.diffuseColor = new BABYLON.Color3(0, 1, 0);
-      blade.position.y = 6;
-      blade.rotation.z = (Math.PI / 6) * (i - 2);
-      items.push(blade);
-    }
-    var flowerRadius = 0.6;
-    var flowerCount = 5;
-    for (var i = 0; i < flowerCount; i++) {
-      var angle = (i / flowerCount) * 2 * Math.PI;
-      var flowerPetal = BABYLON.MeshBuilder.CreateSphere(
-        "flowerPetal" + i,
-        { diameter: 0.4 },
-        that.scene
-      );
-      flowerPetal.material = new BABYLON.StandardMaterial(
-        "flowerMaterial",
-        that.scene
-      );
-      flowerPetal.material.diffuseColor = new BABYLON.Color3(1, 0, 0);
-      flowerPetal.position.y = 12;
-      flowerPetal.position.x = Math.cos(angle) * flowerRadius;
-      flowerPetal.position.z = Math.sin(angle) * flowerRadius;
-      items.push(flowerPetal);
-    }
-    var flowerGrassMesh = BABYLON.Mesh.MergeMeshes(
-      items,
-      true,
-      false,
-      null,
-      false,
-      true
-    );
-    flowerGrassMesh.position.y = -3;
-    return flowerGrassMesh;
-  }
+		var grassMesh = BABYLON.Mesh.MergeMeshes(
+			items,
+			true,
+			false,
+			null,
+			false,
+			true
+		);
 
-  LoadGrassModel(grassURL) {
-    this.grassTemplate0 = this._buildGrassMesh0();
-    this.grassTemplate0.isVisible = false;
+		return grassMesh;
+	}
 
-    this.grassTemplate1 = this._buildDenseGrassMesh();
-    this.grassTemplate1.isVisible = false;
+	_buildDenseGrassMesh() {
+		const that = this;
+		var items = [];
+		for (var i = 0; i < 7; i++) {
+			var grass = that._buildGrassMesh0();
+			grass.scaling = new BABYLON.Vector3(1, 1, 1);
+			grass.rotation.y = (Math.PI / 3.5) * i;
+			items.push(grass);
+		}
+		var denseGrassMesh = BABYLON.Mesh.MergeMeshes(
+			items,
+			true,
+			false,
+			null,
+			false,
+			true
+		);
+		denseGrassMesh.position.y = -6;
+		return denseGrassMesh;
+	}
 
-    this.grassTemplate2 = this._buildFlowerGrassMesh();
-    this.grassTemplate2.isVisible = false;
-  }
+	_buildFlowerGrassMesh() {
+		const that = this;
+		var items = [];
+		for (var i = 0; i < 5; i++) {
+			var blade = BABYLON.MeshBuilder.CreateCylinder(
+				"blade",
+				{
+					height: 12,
+					diameterTop: 0,
+					diameterBottom: 1.2,
+					tessellation: 3,
+				},
+				that.scene
+			);
+			blade.material = new BABYLON.StandardMaterial(
+				"grassMaterial",
+				that.scene
+			);
+			blade.material.diffuseColor = new BABYLON.Color3(0, 1, 0);
+			blade.position.y = 6;
+			blade.rotation.z = (Math.PI / 6) * (i - 2);
+			items.push(blade);
+		}
+		var flowerRadius = 0.6;
+		var flowerCount = 5;
+		for (var i = 0; i < flowerCount; i++) {
+			var angle = (i / flowerCount) * 2 * Math.PI;
+			var flowerPetal = BABYLON.MeshBuilder.CreateSphere(
+				"flowerPetal" + i,
+				{ diameter: 0.4 },
+				that.scene
+			);
+			flowerPetal.material = new BABYLON.StandardMaterial(
+				"flowerMaterial",
+				that.scene
+			);
+			flowerPetal.material.diffuseColor = new BABYLON.Color3(1, 0, 0);
+			flowerPetal.position.y = 12;
+			flowerPetal.position.x = Math.cos(angle) * flowerRadius;
+			flowerPetal.position.z = Math.sin(angle) * flowerRadius;
+			items.push(flowerPetal);
+		}
+		var flowerGrassMesh = BABYLON.Mesh.MergeMeshes(
+			items,
+			true,
+			false,
+			null,
+			false,
+			true
+		);
+		flowerGrassMesh.position.y = -3;
+		return flowerGrassMesh;
+	}
 
-  CreateSingleGrass(x, z, rotation) {
-    var grassMesh = this.grassTemplate0.createInstance(
-      "grass" + this.grassIndex
-    );
-    this.grassIndex++;
+	LoadGrassModel(grassURL) {
+		this.grassTemplate0 = this._buildGrassMesh0();
+		this.grassTemplate0.isVisible = false;
 
-    grassMesh.position.x = x;
-    grassMesh.position.z = z;
-    grassMesh.position.y = this.groundY0;
-    grassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
-    grassMesh.checkCollisions = false;
+		this.grassTemplate1 = this._buildDenseGrassMesh();
+		this.grassTemplate1.isVisible = false;
 
-    const grass = new Grass(grassMesh, this);
-    this.grasses.push(grass);
-    return grass;
-  }
+		this.grassTemplate2 = this._buildFlowerGrassMesh();
+		this.grassTemplate2.isVisible = false;
+	}
 
-  CreateDenseGrass(x, z, rotation) {
-    var denseGrassMesh = this.grassTemplate1.createInstance(
-      "grassDense" + this.grassIndex
-    );
-    this.grassIndex++;
-    denseGrassMesh.position.x = x;
-    denseGrassMesh.position.z = z;
-    denseGrassMesh.position.y = this.groundY0;
-    denseGrassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
-    denseGrassMesh.checkCollisions = false;
-    const grass = new Grass(denseGrassMesh, this);
-    this.grasses.push(grass);
-    return grass;
-  }
+	CreateSingleGrass(x, z, rotation) {
+		var grassMesh = this.grassTemplate0.createInstance(
+			"grass" + this.grassIndex
+		);
+		this.grassIndex++;
 
-  CreateFlowerGrass(x, z, rotation) {
-    var flowerGrassMesh = this.grassTemplate2.createInstance(
-      "grassFlower" + this.grassIndex
-    );
-    this.grassIndex++;
+		grassMesh.position.x = x;
+		grassMesh.position.z = z;
+		grassMesh.position.y = this.groundY0;
+		grassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
+		grassMesh.checkCollisions = false;
 
-    flowerGrassMesh.position.x = x;
-    flowerGrassMesh.position.z = z;
-    flowerGrassMesh.position.y = this.groundY0;
-    flowerGrassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
-    flowerGrassMesh.checkCollisions = false;
-    const grass = new Grass(flowerGrassMesh, this);
-    this.grasses.push(grass);
-    return grass;
-  }
- 
-  ToggleWormMovement() {
-    this.wormMovementEnabled = !this.wormMovementEnabled;
-    this._updateToggleButton();
-  }
+		const grass = new Grass(grassMesh, this);
+		this.grasses.push(grass);
+		return grass;
+	}
 
-  UpdateWormSpeed(speed) {
-    this.WormSpeed = speed;
-  }
+	CreateDenseGrass(x, z, rotation) {
+		var denseGrassMesh = this.grassTemplate1.createInstance(
+			"grassDense" + this.grassIndex
+		);
+		this.grassIndex++;
+		denseGrassMesh.position.x = x;
+		denseGrassMesh.position.z = z;
+		denseGrassMesh.position.y = this.groundY0;
+		denseGrassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
+		denseGrassMesh.checkCollisions = false;
+		const grass = new Grass(denseGrassMesh, this);
+		this.grasses.push(grass);
+		return grass;
+	}
 
-  _updateToggleButton() {
-    const button = document.getElementById("toggleMovement");
-    if (world.wormMovementEnabled) {
-      button.textContent = "暂停虫子运动";
-    } else {
-      button.textContent = "开启虫子运动";
-    }
-  }
+	CreateFlowerGrass(x, z, rotation) {
+		var flowerGrassMesh = this.grassTemplate2.createInstance(
+			"grassFlower" + this.grassIndex
+		);
+		this.grassIndex++;
 
-  _drawOnMiniMap(position, color) {
-    const x = (position.x + this.WorldSize / 2) * this.miniMapScale;
-    const z = (position.z + this.WorldSize / 2) * this.miniMapScale;
+		flowerGrassMesh.position.x = x;
+		flowerGrassMesh.position.z = z;
+		flowerGrassMesh.position.y = this.groundY0;
+		flowerGrassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
+		flowerGrassMesh.checkCollisions = false;
+		const grass = new Grass(flowerGrassMesh, this);
+		this.grasses.push(grass);
+		return grass;
+	}
 
-    this.miniMapContext.fillStyle = color;
-    this.miniMapContext.fillRect(x, z, 2, 2);
-  }
+	ToggleWormMovement() {
+		this.wormMovementEnabled = !this.wormMovementEnabled;
+		this._updateToggleButton();
+	}
 
-  _drawTrend(
-    ctx,
-    chartWidth,
-    chartHeight,
-    singleGrassValues,
-    wormValues
-  ) {
-    const padding = 2;
-    const plotWidth = chartWidth - 2 * padding;
-    const plotHeight = chartHeight - 2 * padding;
+	UpdateWormSpeed(speed) {
+		this.WormSpeed = speed;
+	}
 
-    const maxSingleValue = Math.max(...singleGrassValues);
-    const maxWormValue = Math.max(...wormValues);
-    const maxValue = Math.max(
-      maxSingleValue,
-      maxWormValue
-    );
+	_updateToggleButton() {
+		const button = document.getElementById("toggleMovement");
+		if (world.wormMovementEnabled) {
+			button.textContent = "暂停虫子运动";
+		} else {
+			button.textContent = "开启虫子运动";
+		}
+	}
 
-    ctx.clearRect(0, 0, chartWidth, chartHeight);
+	_drawOnMiniMap(position, color) {
+		const x = (position.x + this.WorldSize / 2) * this.miniMapScale;
+		const z = (position.z + this.WorldSize / 2) * this.miniMapScale;
 
-    const drawLine = (values, color) => {
-      ctx.beginPath();
-      ctx.strokeStyle = color;
-      values.forEach((value, index) => {
-        const x = padding + (index / (values.length - 1)) * plotWidth;
-        const y = chartHeight - padding - (value / maxValue) * plotHeight;
+		this.miniMapContext.fillStyle = color;
+		this.miniMapContext.fillRect(x, z, 2, 2);
+	}
 
-        if (index === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      });
-      ctx.stroke();
-    };
+	/*_drawTrend(
+		ctx,
+		chartWidth,
+		chartHeight,
+		singleGrassValues,
+		wormValues,
+		fpsValues
+	) {
+		const padding = 2;
+		const plotWidth = chartWidth - 2 * padding;
+		const plotHeight = chartHeight - 2 * padding;
 
-    drawLine(singleGrassValues, "green");
-    drawLine(wormValues, "purple");
+		/*const maxSingleValue = Math.max(...singleGrassValues);
+		const maxWormValue = Math.max(...wormValues);
+		const maxFPSValue = Math.max(...fpsValues);
+		const maxValue = Math.max(maxSingleValue, maxWormValue, maxFPSValue);
+	
+		const maxSingleValue = singleGrassValues[singleGrassValues.length - 1];
+		const maxWormValue = wormValues[wormValues.length - 1];
+		const maxFPSValue = 20 * fpsValues[fpsValues.length - 1];
+		const maxValue = 8000;
+		ctx.clearRect(0, 0, chartWidth, chartHeight);
 
-    ctx.font = "12px Arial";
-    ctx.fillText(`总数草: ${maxSingleValue}`, padding, padding + 12);
-    ctx.fillText(`总数虫: ${maxWormValue}`, padding, padding + 48);
-  }
+		const drawLine = (values, color, rate = 1) => {
+			ctx.beginPath();
+			ctx.strokeStyle = color;
+			values.forEach((value, index) => {
+				value = value * rate;
+				const x = padding + (index / (values.length - 1)) * plotWidth;
+				const y = chartHeight - padding - (value / maxValue) * plotHeight;
 
-  RunFrame(fps) {
+				if (index === 0) {
+					ctx.moveTo(x, y);
+				} else {
+					ctx.lineTo(x, y);
+				}
+			});
+			ctx.stroke();
+		};
+
+		drawLine(singleGrassValues, "green");
+		drawLine(wormValues, "purple");
+		drawLine(fpsValues, "blue", 20); // 添加 FPS 数据的绘制，颜色为蓝色
+
+		ctx.font = "12px Arial";
+		ctx.fillText(`总数草: ${maxSingleValue}`, padding, padding + 12);
+		ctx.fillText(`总数虫: ${maxWormValue}`, padding, padding + 48);
+		ctx.fillText(`FPS: ${maxFPSValue.toFixed(2)}`, padding, padding + 84); // 显示 FPS
+	}*/
+  RunFrame() {
     if (!this.wormMovementEnabled) return;
 
     this.worms.forEach(function (worm) {
-      worm.Move();
-      worm.Eat();
-      worm.Attack();
+        worm.Move();
+        //worm.Eat();
+        //worm.Attack();
     });
 
+    const currentTime = performance.now();
+    const deltaTime = currentTime - this.previousTime;
+    this.previousTime = currentTime;
+    const currentFPS = 1000 / deltaTime;
+    this.fpsValues.push(currentFPS);
+    if (this.fpsValues.length > 500) {
+        this.fpsValues.shift();
+    }
+
     if (this.isTrendChartVisible) {
-      this.trendChartContext.clearRect(
-        0,
-        0,
-        this.trendChart.width,
-        this.trendChart.height
-      );
+        const singleCount = this.grasses.filter((grass) =>
+            grass.grassMesh.name.startsWith("grass")
+        ).length;
+        const wormCount = this.worms.length;
 
-      if (!this.singleGrassValues) {
-        this.singleGrassValues = [];
-        this.wormValues = [];
-      }
+        // 更新草和虫的数量
+        this.trendPanel.Update(singleCount, wormCount, currentFPS);
 
-      const singleCount = this.grasses.filter((grass) =>
-        grass.grassMesh.name.startsWith("grass")
-      ).length;
-      const wormCount = this.worms.length;
-
-      this.singleGrassValues.push(singleCount);
-      this.wormValues.push(wormCount);
-
-      if (this.singleGrassValues.length > 500) {
-        this.singleGrassValues.shift();
-        this.wormValues.shift();
-      }
-
-      this._drawTrend(
-        this.trendChartContext,
-        this.trendChart.width,
-        this.trendChart.height,
-        this.singleGrassValues,
-        this.wormValues
-      );
+        // 绘制趋势图
+        this.trendPanel._drawTrend();
     }
 
     if (this.isMiniMapVisible) {
-      this.miniMapContext.clearRect(
-        0,
-        0,
-        this.miniMapWidth,
-        this.miniMapHeight
-      );
+        this.miniMapContext.clearRect(
+            0,
+            0,
+            this.miniMapWidth,
+            this.miniMapHeight
+        );
 
-      this.worms.forEach((worm) => {
-        this._drawOnMiniMap(worm.wormMesh.position, "red");
-      });
-      this.grasses.forEach((grass) => {
-        this._drawOnMiniMap(grass.grassMesh.position, "green");
-      });
+        this.worms.forEach((worm) => {
+            this._drawOnMiniMap(worm.wormMesh.position, "red");
+        });
+        this.grasses.forEach((grass) => {
+            this._drawOnMiniMap(grass.grassMesh.position, "green");
+        });
     }
 
     // 增加帧计数器
     this.frameCounter++;
-
-    // 每过一定帧数尝试生长新的草，频率与FPS相关
-   /* const growInterval = Math.max(1, Math.floor(1000 / fps));
-    if (this.frameCounter >= growInterval) {
-      this.frameCounter = 0; // 重置帧计数器
-      this._randomlyGrowGrass();
-    }
-
-    // 更新草的重生时间
-    this._updateGrassRespawn();*/
-  }
-
-  /* _randomlyGrowGrass() {
-    let x, z;
-    let inExistingArea = true;
-    while (inExistingArea) {
-      x = Math.random() * this.WorldSize - this.WorldSize / 2;
-      z = Math.random() * this.WorldSize - this.WorldSize / 2;
-      inExistingArea = this._isInExistingArea(x, z);
-    }
-    const randomChoice = Math.random();
-    if (randomChoice < 0.33) {
-      this.CreateDenseGrass(x, z, 0);
-    } else if (randomChoice < 0.66) {
-      this.CreateFlowerGrass(x, z, 0);
-    } else {
-      this.CreateSingleGrass(x, z, 0);
-    }
-  }
-
-  _updateGrassRespawn() {
-    const currentFrame = this.frameCounter;
-    this.grassRespawnFrames = this.grassRespawnFrames.filter((respawn) => {
-      if (currentFrame >= respawn.frame) {
-        this._randomlyGrowGrass(respawn.x, respawn.z);
-        return false; // 移除已重生的草
-      }
-      return true; // 保留尚未重生的草
-    });
-  }
-
-  _isInExistingArea(x, z) {
-    const minDistance = 5; // 草和虫子之间的最小距离
-    return (
-      this.grasses.some((grass) => {
-        const dx = grass.grassMesh.position.x - x;
-        const dz = grass.grassMesh.position.z - z;
-        const distance = Math.sqrt(dx * dx + dz * dz);
-        return distance < minDistance;
-      }) ||
-      this.worms.some((worm) => {
-        const dx = worm.wormMesh.position.x - x;
-        const dz = worm.wormMesh.position.z - z;
-        const distance = Math.sqrt(dx * dx + dz * dz);
-        return distance < minDistance;
-      })
-    );
-  }*/
+	}
 }
