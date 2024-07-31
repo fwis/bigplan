@@ -140,15 +140,8 @@ class Worm1 {
 	 * 虫子吃草
 	 */
 	Eat() {
-		const potentialCollisions = this.world.grid.getPotentialCollision(this.obb2d);
-
-		for (const other of potentialCollisions.objects) {
-			if (other !== this.obb2d && other.objType === "草") {
-				if (this.obb2d.isColliding(other)) {
-					this.world.removeGrass(other);
-					break;
-				}
-			}
+		if (this.collidingObject && this.collidingObject.objType === "草") {
+            this.world.removeGrass(this.collidingObject);
 		}
 	}
 }
