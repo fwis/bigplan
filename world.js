@@ -1,7 +1,7 @@
 class World {
 	constructor(worldSize, miniMapCanvas, trendChart) {
 		this.WorldSize = worldSize;
-		this.WormSpeed = 0.05;
+		this.WormSpeed = 0.1;
 		this.scene = null;
 		this.wormTemplate = null;
 		this.wormIndex = 0;
@@ -31,24 +31,18 @@ class World {
 
 		this.miniMapScale = this.miniMapWidth / this.WorldSize;
 
-		this.trendChart = trendChart;
-		this.trendChartContext = this.trendChart.getContext("2d");
+		this.trendPanel = new TrendPanel(trendChart, 10);
+		this.trendPanel.AddSerie("虫数", "red");
+		this.trendPanel.AddSerie("草数", "green");
+		this.trendPanel.AddSerie("FPS", "white");
 
-		this.frameCounter = 0;
 		this.growInterval = 100;
 
 		this.isMiniMapVisible = true; // 小地图可见状态
-		this.isTrendChartVisible = true; // 趋势图可见状态
 
-		this.fpsValues = []; // 添加一个数组来存储 FPS 值
 		this.previousTime = performance.now(); // 用于 FPS 计算的初始时间
 
-
-
-
-
-    // 创建趋势面板实例
-    this.trendPanel = new TrendPanel(trendChart);
+		this.grid = new Grid(30, this.WorldSize);
 	}
 
 	LoadWormModel(wormModelURL) {
@@ -77,6 +71,24 @@ class World {
 				that.wormTemplate.isVisible = false;
 			}
 		);
+	}
+
+	CreatWormsRandomly(count, usingInstance) {
+		
+		for (var i = 0; i < count; i++) {
+			const x = Math.random() * this.WorldSize - this.WorldSize / 2;
+			const z = Math.random() * this.WorldSize - this.WorldSize / 2;
+			const rotation = Math.random() * Math.PI * 2 - Math.PI;
+
+			this.CreateWorm(x, z, rotation, usingInstance);
+		}
+		
+		/*
+		this.WormSpeed = 0.01;
+		this.CreateWorm(4, 0, 0, usingInstance);
+		this.CreateWorm(-4, 0, Math.PI, usingInstance);
+		*/
+		
 	}
 
 	CreateWorm(x, z, rotation, usingInstance) {
@@ -123,7 +135,7 @@ class World {
 			wormMesh.material = multiMaterial;
 		}
 
-		const worm = new Worm1(wormMesh, this, x, this.groundY, z, rotation, this.scene);
+		const worm = new Worm1(this, wormMesh, x, this.groundY, z, rotation);
 		that.worms.push(worm);
 		return worm;
 	}
@@ -251,51 +263,67 @@ class World {
 	}
 
 	CreateSingleGrass(x, z, rotation) {
-		var grassMesh = this.grassTemplate0.createInstance(
-			"grass" + this.grassIndex
-		);
-		this.grassIndex++;
+        var grassMesh = this.grassTemplate0.createInstance(
+            "grass" + this.grassIndex
+        );
+        this.grassIndex++;
 
-		grassMesh.position.x = x;
-		grassMesh.position.z = z;
-		grassMesh.position.y = this.groundY0;
-		grassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
-		grassMesh.checkCollisions = false;
+        grassMesh.position.x = x;
+        grassMesh.position.z = z;
+        grassMesh.position.y = this.groundY0;
+        grassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
+        grassMesh.checkCollisions = false;
 
-		const grass = new Grass(grassMesh, this);
-		this.grasses.push(grass);
-		return grass;
-	}
+        const grass = new Grass(grassMesh, this.scene, this);
+        this.grasses.push(grass);
+        return grass;
+    }
 
-	CreateDenseGrass(x, z, rotation) {
-		var denseGrassMesh = this.grassTemplate1.createInstance(
-			"grassDense" + this.grassIndex
-		);
-		this.grassIndex++;
-		denseGrassMesh.position.x = x;
-		denseGrassMesh.position.z = z;
-		denseGrassMesh.position.y = this.groundY0;
-		denseGrassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
-		denseGrassMesh.checkCollisions = false;
-		const grass = new Grass(denseGrassMesh, this);
-		this.grasses.push(grass);
-		return grass;
-	}
+    CreateDenseGrass(x, z, rotation) {
+        var denseGrassMesh = this.grassTemplate1.createInstance(
+            "grassDense" + this.grassIndex
+        );
+        this.grassIndex++;
+        denseGrassMesh.position.x = x;
+        denseGrassMesh.position.z = z;
+        denseGrassMesh.position.y = this.groundY0;
+        denseGrassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
+        denseGrassMesh.checkCollisions = false;
 
-	CreateFlowerGrass(x, z, rotation) {
-		var flowerGrassMesh = this.grassTemplate2.createInstance(
-			"grassFlower" + this.grassIndex
-		);
-		this.grassIndex++;
+        const grass = new Grass(denseGrassMesh, this.scene, this);
+        this.grasses.push(grass);
+        return grass;
+    }
 
-		flowerGrassMesh.position.x = x;
-		flowerGrassMesh.position.z = z;
-		flowerGrassMesh.position.y = this.groundY0;
-		flowerGrassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
-		flowerGrassMesh.checkCollisions = false;
-		const grass = new Grass(flowerGrassMesh, this);
-		this.grasses.push(grass);
-		return grass;
+    CreateFlowerGrass(x, z, rotation) {
+        var flowerGrassMesh = this.grassTemplate2.createInstance(
+            "grassFlower" + this.grassIndex
+        );
+        this.grassIndex++;
+
+        flowerGrassMesh.position.x = x;
+        flowerGrassMesh.position.z = z;
+        flowerGrassMesh.position.y = this.groundY0;
+        flowerGrassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
+        flowerGrassMesh.checkCollisions = false;
+
+        const grass = new Grass(flowerGrassMesh, this.scene, this);
+        this.grasses.push(grass);
+        return grass;
+    }
+
+	
+	removeGrass(grassOBB) {
+		const grass = this.grasses.find(g => g.obb2d === grassOBB);
+		if (grass) {
+			const index = this.grasses.indexOf(grass);
+			if (index > -1) {
+				this.grasses.splice(index, 1);
+				const cellIndices = this.grid._getCellIndices(grass.obb2d);
+				this.grid.remove(grass.obb2d, cellIndices);
+				grass.grassMesh.dispose();
+			}
+		}
 	}
 
 	ToggleWormMovement() {
@@ -316,111 +344,51 @@ class World {
 		}
 	}
 
-	_drawOnMiniMap(position, color) {
+	_drawOnMiniMap(position, color, size = 2) {
 		const x = (position.x + this.WorldSize / 2) * this.miniMapScale;
 		const z = (position.z + this.WorldSize / 2) * this.miniMapScale;
 
 		this.miniMapContext.fillStyle = color;
-		this.miniMapContext.fillRect(x, z, 2, 2);
+		this.miniMapContext.fillRect(x, z, size, size);
 	}
 
-	/*_drawTrend(
-		ctx,
-		chartWidth,
-		chartHeight,
-		singleGrassValues,
-		wormValues,
-		fpsValues
-	) {
-		const padding = 2;
-		const plotWidth = chartWidth - 2 * padding;
-		const plotHeight = chartHeight - 2 * padding;
+	RunFrame(cameraPos) {
+        const that = this;
+        if (!that.wormMovementEnabled) return;
 
-		/*const maxSingleValue = Math.max(...singleGrassValues);
-		const maxWormValue = Math.max(...wormValues);
-		const maxFPSValue = Math.max(...fpsValues);
-		const maxValue = Math.max(maxSingleValue, maxWormValue, maxFPSValue);
-	
-		const maxSingleValue = singleGrassValues[singleGrassValues.length - 1];
-		const maxWormValue = wormValues[wormValues.length - 1];
-		const maxFPSValue = 20 * fpsValues[fpsValues.length - 1];
-		const maxValue = 8000;
-		ctx.clearRect(0, 0, chartWidth, chartHeight);
+        that.worms.forEach(function (worm) {
+            worm.Move(that.WormSpeed);
+            worm.eat(); // 检查并处理虫子吃草
+        });
 
-		const drawLine = (values, color, rate = 1) => {
-			ctx.beginPath();
-			ctx.strokeStyle = color;
-			values.forEach((value, index) => {
-				value = value * rate;
-				const x = padding + (index / (values.length - 1)) * plotWidth;
-				const y = chartHeight - padding - (value / maxValue) * plotHeight;
+		const currentTime = performance.now();
+		const deltaTime = currentTime - this.previousTime;
+		this.previousTime = currentTime;
+		const currentFPS = 1000 / deltaTime;
+		
+		if (this.trendPanel.IsVisible()) {
+			const grassCount = this.grasses.length;
+			const wormCount = this.worms.length;
 
-				if (index === 0) {
-					ctx.moveTo(x, y);
-				} else {
-					ctx.lineTo(x, y);
-				}
+			this.trendPanel.Add(wormCount, grassCount, currentFPS);
+		}
+
+		if (true) {
+			this.miniMapContext.clearRect(
+				0,
+				0,
+				this.miniMapWidth,
+				this.miniMapHeight
+			);
+
+			this.worms.forEach((worm) => {
+				this._drawOnMiniMap(worm.obb2d.center, "red");
 			});
-			ctx.stroke();
-		};
+			this.grasses.forEach((grass) => {
+				//that._drawOnMiniMap(grass.position, "green");
+			});
 
-		drawLine(singleGrassValues, "green");
-		drawLine(wormValues, "purple");
-		drawLine(fpsValues, "blue", 20); // 添加 FPS 数据的绘制，颜色为蓝色
-
-		ctx.font = "12px Arial";
-		ctx.fillText(`总数草: ${maxSingleValue}`, padding, padding + 12);
-		ctx.fillText(`总数虫: ${maxWormValue}`, padding, padding + 48);
-		ctx.fillText(`FPS: ${maxFPSValue.toFixed(2)}`, padding, padding + 84); // 显示 FPS
-	}*/
-  RunFrame() {
-    if (!this.wormMovementEnabled) return;
-
-    this.worms.forEach(function (worm) {
-        worm.Move();
-        //worm.Eat();
-        //worm.Attack();
-    });
-
-    const currentTime = performance.now();
-    const deltaTime = currentTime - this.previousTime;
-    this.previousTime = currentTime;
-    const currentFPS = 1000 / deltaTime;
-    this.fpsValues.push(currentFPS);
-    if (this.fpsValues.length > 500) {
-        this.fpsValues.shift();
-    }
-
-    if (this.isTrendChartVisible) {
-        const singleCount = this.grasses.filter((grass) =>
-            grass.grassMesh.name.startsWith("grass")
-        ).length;
-        const wormCount = this.worms.length;
-
-        // 更新草和虫的数量
-        this.trendPanel.Update(singleCount, wormCount, currentFPS);
-
-        // 绘制趋势图
-        this.trendPanel._drawTrend();
-    }
-
-    if (this.isMiniMapVisible) {
-        this.miniMapContext.clearRect(
-            0,
-            0,
-            this.miniMapWidth,
-            this.miniMapHeight
-        );
-
-        this.worms.forEach((worm) => {
-            this._drawOnMiniMap(worm.wormMesh.position, "red");
-        });
-        this.grasses.forEach((grass) => {
-            this._drawOnMiniMap(grass.grassMesh.position, "green");
-        });
-    }
-
-    // 增加帧计数器
-    this.frameCounter++;
+			this._drawOnMiniMap(cameraPos, "yellow", 4);
+		}
 	}
 }
