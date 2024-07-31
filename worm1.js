@@ -107,38 +107,30 @@ class Worm1 {
 
 			for (const other of potentialCollisions.objects) {
 				if (other !== this.obb2d) {
+					//console.log(`${this.name} map colliding!`);
 					if (this.obb2d.isColliding(other)) {
 						this.collidingObject = other;
+						//console.log(`${this.name} object colliding!`);
 						break;
 					}
 				}
 			}
 		}
 
-		// 如果是碰撞到了虫子，当前虫子后退
+		// 如果是碰撞到了虫子，保持不动，复原 obb2d
 		if (this.collidingObject && this.collidingObject.objType === "虫") {
-			this.obb2d.Restore(); // 恢复到原位置
-			var retreatRotation = rotation + Math.PI; // 反向旋转
-			this.obb2d.Move(retreatRotation, distance); // 后退
-
-			const retreatCellIndices = this.world.grid._getCellIndices(this.obb2d);
-			this.world.grid.remove(this.obb2d, oldCellIndices);
-			this.world.grid.add(this.obb2d, retreatCellIndices);
-
-			if (Global.ShowOBB) {
-				this.boxMesh.scaling = this.obb2d.aabb.maximum.subtract(this.obb2d.aabb.minimum);
-				this.boxMesh.scaling.y = 1;
-				this.boxMesh.position = this.obb2d.center;
-			}
-			this.obb2d.ApplyToMesh();
+			this.obb2d.Restore();
+			//console.log(`${this.name} 恢复位置!`);
 		} else {
 			this.world.grid.remove(this.obb2d, oldCellIndices);
 			this.world.grid.add(this.obb2d, newCellIndices);
 
 			if (Global.ShowOBB) {
+				//this.obb2d.ApplyToMesh(this.boxMesh);
 				this.boxMesh.scaling = this.obb2d.aabb.maximum.subtract(this.obb2d.aabb.minimum);
 				this.boxMesh.scaling.y = 1;
 				this.boxMesh.position = this.obb2d.center;
+
 			}
 			this.obb2d.ApplyToMesh();
 		}
@@ -147,7 +139,7 @@ class Worm1 {
 	/**
 	 * 虫子吃草
 	 */
-	eat() {
+	Eat() {
 		const potentialCollisions = this.world.grid.getPotentialCollision(this.obb2d);
 
 		for (const other of potentialCollisions.objects) {

@@ -358,7 +358,7 @@ class World {
 
         that.worms.forEach(function (worm) {
             worm.Move(that.WormSpeed);
-            worm.eat(); // 检查并处理虫子吃草
+            worm.Eat(); // 检查并处理虫子吃草
         });
 
 		const currentTime = performance.now();
