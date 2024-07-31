@@ -118,23 +118,23 @@ class Worm1 {
 		}
 
 		// 如果是碰撞到了虫子，保持不动，复原 obb2d
-		if (this.collidingObject && this.collidingObject.objType === "虫") {
+		/*if (this.collidingObject && this.collidingObject.objType === "虫") {
 			this.obb2d.Restore();
 			//console.log(`${this.name} 恢复位置!`);
 		} else {
 			this.world.grid.remove(this.obb2d, oldCellIndices);
-			this.world.grid.add(this.obb2d, newCellIndices);
+			this.world.grid.add(this.obb2d, newCellIndices);*/
 
-			if (Global.ShowOBB) {
-				//this.obb2d.ApplyToMesh(this.boxMesh);
-				this.boxMesh.scaling = this.obb2d.aabb.maximum.subtract(this.obb2d.aabb.minimum);
-				this.boxMesh.scaling.y = 1;
-				this.boxMesh.position = this.obb2d.center;
+		if (Global.ShowOBB) {
+			//this.obb2d.ApplyToMesh(this.boxMesh);
+			this.boxMesh.scaling = this.obb2d.aabb.maximum.subtract(this.obb2d.aabb.minimum);
+			this.boxMesh.scaling.y = 1;
+			this.boxMesh.position = this.obb2d.center;
 
-			}
-			this.obb2d.ApplyToMesh();
 		}
+		this.obb2d.ApplyToMesh();
 	}
+
 
 	/**
 	 * 虫子吃草
