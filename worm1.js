@@ -147,7 +147,7 @@ class Worm1 {
 	/**
 	 * 虫子吃草
 	 */
-	Eat() {
+	eat() {
 		const potentialCollisions = this.world.grid.getPotentialCollision(this.obb2d);
 
 		for (const other of potentialCollisions.objects) {
