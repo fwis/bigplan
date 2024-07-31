@@ -312,26 +312,19 @@ class World {
         return grass;
     }
 
-	/*removeGrass(grass) {
-        const index = this.grasses.indexOf(grass);
-        if (index > -1) {
-            this.grasses.splice(index, 1);
-            this.grid.remove(grass.obb2d);
-            grass.grassMesh.dispose();
-        }
-    }*/
-		removeGrass(grassOBB) {
-			const grass = this.grasses.find(g => g.obb2d === grassOBB);
-			if (grass) {
-				const index = this.grasses.indexOf(grass);
-				if (index > -1) {
-					this.grasses.splice(index, 1);
-					const cellIndices = this.grid._getCellIndices(grass.obb2d);
-					this.grid.remove(grass.obb2d, cellIndices);
-					grass.grassMesh.dispose();
-				}
+	
+	removeGrass(grassOBB) {
+		const grass = this.grasses.find(g => g.obb2d === grassOBB);
+		if (grass) {
+			const index = this.grasses.indexOf(grass);
+			if (index > -1) {
+				this.grasses.splice(index, 1);
+				const cellIndices = this.grid._getCellIndices(grass.obb2d);
+				this.grid.remove(grass.obb2d, cellIndices);
+				grass.grassMesh.dispose();
 			}
 		}
+	}
 
 	ToggleWormMovement() {
 		this.wormMovementEnabled = !this.wormMovementEnabled;
@@ -396,22 +389,6 @@ class World {
 			});
 
 			this._drawOnMiniMap(cameraPos, "yellow", 4);
-		}
-	}
-	
-	
-	checkWormGrassCollision(worm) {
-		const cellIndices = this.grid._getCellIndices(worm.obb2d);
-		const potentialCollisions = this.grid.getPotentialCollision(worm.obb2d, cellIndices);
-	
-		for (const other of potentialCollisions.objects) {
-			if (other.objType === "草" && worm.obb2d.isColliding(other)) {
-				const grass = this.grasses.find(g => g.obb2d === other);
-				if (grass) {
-					worm.Eat(grass);
-					break; // Worm eats only one grass per frame
-				}
-			}
 		}
 	}
 }

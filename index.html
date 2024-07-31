@@ -109,8 +109,8 @@
         const toggleTrendChartButton = document.getElementById("toggleTrendChart");
 
         // 创建Babylon引擎
-        var engine = new BABYLON.Engine(canvas);
-        var world = new World(1000, miniMapCanvas, trendChart);
+        var engine = new BABYLON.Engine(canvas, true);
+        var world = new World(4000, miniMapCanvas, trendChart);
         var camera = null;
 
         // 创建场景的函数
@@ -169,7 +169,7 @@
         document.getElementById("addWorm").addEventListener("click", function () {
             var count = parseInt(document.getElementById("wormCount").value) || 1;
             world.CreatWormsRandomly(count, Global.UseWormInstance);
-});
+        });
 
         // 更新草数量按钮事件
         document.getElementById("updateGrass").addEventListener("click", function () {

@@ -25,6 +25,10 @@ class OBB2D {
 		this.mesh = null;
 	}
 
+	/**
+	 * 将OBB2D对象与一个网格关联
+	 * @param {BABYLON.Mesh} mesh 关联的网格
+	 */
 	AttachMesh(mesh) {
 		this.mesh = mesh;
 
@@ -83,6 +87,9 @@ class OBB2D {
 		
 	}
 
+	/**
+	 * 根据当前中心和方向计算AABB
+	 */
 	compute() {
 		this._aabb.minimum.x =  this.center.x - this.halfw;
 		this._aabb.minimum.z =  this.center.z - this.halfw;
@@ -91,16 +98,28 @@ class OBB2D {
 		this._aabb.maximum.z =  this.center.z + this.halfw;
 	}
 
+	/**
+	 * 获取AABB
+	 * @returns {BABYLON.BoundingBox} AABB对象
+	 */
 	get aabb() {
 		return this._aabb;
 	}
 
+	/**
+	 * 将矩阵应用到网格
+	 * @param {BABYLON.Mesh} mesh 应用的网格
+	 */
 	ApplyToMesh0(mesh) {
 		if (!mesh) mesh = this.mesh;
 		
 		mesh.setPreTransformMatrix(this.matrix);
 	}
 
+	/**
+	 * 应用中心位置和方向到网格
+	 * @param {BABYLON.Mesh} mesh 应用的网格
+	 */
 	ApplyToMesh(mesh) {
 		if (!mesh) mesh = this.mesh;
 		mesh.position.x = this.center.x;
@@ -108,6 +127,9 @@ class OBB2D {
 		mesh.rotation.y = this.d;
 	}
 
+	/**
+	 * 保存当前状态
+	 */
 	Save() {
 		//if (!mesh) mesh = this.mesh;
 
@@ -116,6 +138,9 @@ class OBB2D {
 		this.oldD = this.d;
 	}
 
+	/**
+	 * 复原到保存的状态（不应用到网格）
+	 */
 	Restore0() {
 		//if (!mesh) mesh = this.mesh;
 
@@ -125,6 +150,9 @@ class OBB2D {
 		this.compute();
 	}
 
+	/**
+	 * 复原到保存的状态并应用到网格
+	 */
 	Restore() {
 		this.center.x = this.oldX;
 		this.center.z = this.oldZ;
@@ -172,6 +200,11 @@ class OBB2D {
 		}
 	}
 
+	/**
+	 * 检查AABB碰撞
+	 * @param {OBB2D} other 另一个OBB2D对象
+	 * @returns {boolean} 如果发生AABB碰撞返回true，否则返回false
+	 */
 	_checkAABBCollision(other) {
 		const selfaabb = this.aabb;
 		const otheraabb = other.aabb;
