@@ -1,61 +1,81 @@
+class TrendSerie {
+    constructor(name, color, capacity = 500) {
+        this.name = name;
+        this.color = color;
+        this.currentTotal = 0;
+        this.currentAvg = 0;
+        this.data = [];
+        this.maxValue = -Infinity;
+        this.capacity = capacity;
+    }
+
+    Add(value) {
+        if (this.maxValue < value) this.maxValue = value;
+
+        this.currentTotal += value;
+    }
+
+    Average(count) {
+        this.currentAvg = this.currentTotal / count;
+        this.data.push(this.currentAvg);
+        this.currentTotal = 0;
+
+        if (this.data.length > this.capacity) {
+            this.data.shift();
+        }
+    }
+}
+
 class TrendPanel {
-    constructor(trendCanvas) {
+    constructor(trendCanvas, interval = 10) {
         this.trendChart = trendCanvas;
         this.trendChartContext = this.trendChart.getContext("2d");
-
-        this.grassTrends = [];
-        this.wormTrends = [];
-        this.fpsTrends = [];
-        this.statsInterval = 10;
+        this.trendChartContext.font = "12px Arial";
+        this.trendSeries = [];
+        this.statsInterval = interval;
         this.statsCount = 0;
         this.statsCurrentCount = 0;
-        this.grassCurrentCount = 0;
-        this.wormCurrentCount = 0;
         this.maxValue = 1000;
+    }
 
-        this.currentAvgGrassTrend = 0;
-        this.currentAvgWormTrend = 0;
-        this.currentAvgFPSTrend = 0;
+    AddSerie(name, color) {
+        const trendSerie = new TrendSerie(name, color);
+        this.trendSeries.push(trendSerie);
     }
 
     Toggle() {
-        this.trendChart.Invisible = false;
+        if (this.trendChart.style.display != 'block') {
+            this.trendChart.style.display = 'block';
+        } else {
+            this.trendChart.style.display = 'none';
+        }
     }
 
-    Update(grassCount, wormCount, fps) {
-        if (this.maxValue < grassCount) this.maxValue = grassCount;
-        if (this.maxValue < wormCount) this.maxValue = wormCount;
-        if (this.maxValue < fps) this.maxValue = fps;
+    IsVisible() {
+        return (this.trendChart.style.display == 'block');
+    }
 
-        this.grassCurrentCount += grassCount;
-        this.wormCurrentCount += wormCount;
+    Add(v0, v1, v2, v3, v4, v5) {
+        const values = [v0, v1, v2, v3, v4, v5];
+        const len = Math.min(this.trendSeries.length, values.length);
+        //const len = values.length;
+        for(var i = 0; i < len; i++) {
+            var value = values[i];
+            this.trendSeries[i].Add(value);
+        }
+
         this.statsCurrentCount++;
 
         if (this.statsCurrentCount >= this.statsInterval) {
-            this.currentAvgGrassTrend = this.grassCurrentCount / this.statsCurrentCount;
-            this.grassTrends.push(this.currentAvgGrassTrend);
-            this.grassCurrentCount = 0;
+            for(var i = 0; i < this.trendSeries.length; i++) {
+                var trendSerie = this.trendSeries[i];
+                trendSerie.Average(this.statsCurrentCount);
+            }
 
-            this.currentAvgWormTrend = this.wormCurrentCount / this.statsCurrentCount;
-            this.wormTrends.push(this.currentAvgWormTrend);
-            this.wormCurrentCount = 0;
-
-            this.currentAvgFPSTrend = fps;
-            this.fpsTrends.push(this.currentAvgFPSTrend);
             this.statsCurrentCount = 0;
         }
-
-        if (this.grassTrends.length > 500) {
-            this.grassTrends.shift();
-        }
-
-        if (this.wormTrends.length > 500) {
-            this.wormTrends.shift();
-        }
-
-        if (this.fpsTrends.length > 500) {
-            this.fpsTrends.shift();
-        }
+        
+        this._drawTrend();
     }
 
     _drawTrend() {
@@ -69,12 +89,15 @@ class TrendPanel {
 
         ctx.clearRect(0, 0, chartWidth, chartHeight);
 
-        const drawLine = (values, color, scaleFactor = 1) => {
+        const maxValue = this.maxValue;
+        ctx.fillText(`Y: ${maxValue.toFixed(0)}`, padding, padding + 10);
+
+        const drawLine = (values, color) => {
             ctx.beginPath();
             ctx.strokeStyle = color;
             values.forEach((value, index) => {
                 const x = padding + (index / (values.length - 1)) * plotWidth;
-                const y = chartHeight - padding - (value / this.maxValue) * plotHeight * scaleFactor;
+                const y = chartHeight - padding - ((value) / maxValue) * plotHeight;
 
                 if (index === 0) {
                     ctx.moveTo(x, y);
@@ -85,14 +108,11 @@ class TrendPanel {
             ctx.stroke();
         };
 
-        drawLine(this.grassTrends, "green");
-        drawLine(this.wormTrends, "purple");
-        drawLine(this.fpsTrends, "blue",20); // 放大FPS以适应图表
-
-        ctx.font = "12px Arial";
-        ctx.fillText(`Y: ${this.maxValue.toFixed(0)}`, padding, padding + 10);
-        ctx.fillText(`草数: ${this.currentAvgGrassTrend.toFixed(0)}`, plotWidth - 70, padding + 10);
-        ctx.fillText(`虫数: ${this.currentAvgWormTrend.toFixed(0)}`, plotWidth - 70, padding + 32);
-        ctx.fillText(`FPS: ${this.currentAvgFPSTrend.toFixed(2)}`, plotWidth - 70, padding + 54);
+        for(var i = 0; i < this.trendSeries.length; i++) {
+            var trendSerie = this.trendSeries[i];
+            drawLine(trendSerie.data, trendSerie.color);
+            ctx.fillText(`${trendSerie.name}: ${trendSerie.currentAvg.toFixed(0)}`, plotWidth - 70, padding + 10 + i* 22);
+        }
     }
+
 }
