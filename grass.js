@@ -1,31 +1,83 @@
 class Grass {
-    /**
-     * 创建草对象
-     * @param {BABYLON.Mesh} grassMesh 草的3D网格
-     * @param {BABYLON.Scene} scene 场景对象
-     * @param {World} world 当前世界对象
-     */
-    constructor(grassMesh, scene, world) {
+    constructor(world, mesh, x, y, z, d) {
         this.objType = "草";
-        this.grassMesh = grassMesh;
-        //this.grassMesh.showBoundingBox = true;
-        this.scene = scene;
-        this.world = world;
+        this.name = mesh.id;
+		this.world = world;
+		this.mesh = mesh;
 
-        //创建草的OBB2D
-        const position = grassMesh.position;
-        this.obb2d = new OBB2D(position.x, position.z, 0, 2, 2, world.WorldSize, "草");
-        this.obb2d.AttachMesh(grassMesh);
+		this.mesh.position.x = 0;
+		this.mesh.position.y = y;
+		this.mesh.position.z = 0;
+
+		this.mesh.checkCollisions = false;
+		this.mesh.isVisible = true;
+		this.mesh.showOBB = false;
+
+        this.obb2d = new OBB2D(this, x, z, d, 4, 4, this.world.WorldSize);
+
+        if (Global.ShowOBB) {
+			this.obb2d.CreateDebugAABBMesh(this.world.scene, new BABYLON.Color3(1, 0, 0));
+		}
+
+        this.obb2d.ApplyToMesh();
 
         //将草的OBB2D添加到网格中
         this.world.grid.add(this.obb2d);
+
+        this.energy = 1;
+        this.dying = false; //正在死亡
+        this.dead = false; //已经死亡
     }
 
-    /**
-     * 获取草的名称
-     * @returns {string} 草的名称
-     */
-    get Name() {
-        return this.grassMesh.id;
+    get Mesh() {
+        return this.mesh;
+    }
+
+    Do(index = -1) {
+        if (this.dead) {
+            console.log(`${this.name} dead`);
+            return;
+        }
+
+        if (this.dying) {
+            this.world.grid.remove(this.obb2d);
+            if (index < 0) {
+                index = this.world.grasses.indexOf(this);
+            }
+            this.world.grasses.splice(index, 1);
+
+            this.obb2d.Clean();
+            this.mesh.dispose();
+            this.mesh = undefined;
+
+            this.dying = false;
+            this.dead = true;
+
+            //console.log(`${this.name} remove self`);
+        }
+    }
+
+    ReduceEnergy(eg) {
+        if (this.energy <=0) return 0;
+
+        if (eg === -1) {
+            const r = this.energy;
+            this.energy = 0;
+            this.dying = true;
+            //console.log(`${this.name} dying`);
+            return r;
+        }
+
+        const oldeg = this.energy;
+        var remained = this.energy - eg;
+        if (remained < 0) remained = 0;
+
+        this.energy = remained;
+
+        if (this.energy <= 0) {
+            //console.log(`${this.name} dying`);
+            this.dying = true;
+        }
+        return (oldeg - this.energy);
     }
 }

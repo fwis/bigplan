@@ -7,9 +7,9 @@ class OBB2D {
 	 * @param {float} w 未旋转时x方向的长度
 	 * @param {float} h 未旋转时z方向的长度
 	 */
-	constructor(x, z, d, w, h, worldSize, objType) {
+	constructor(obj, x, z, d, w, h, worldSize) {
 		this.fixedY = 0.5;
-		this.objType = objType;
+		this.obj = obj;
 		this.center = new BABYLON.Vector3(x, this.fixedY, z);
 		this.d = d; // 方位弧度
 		this.w = w; // 长
@@ -22,16 +22,7 @@ class OBB2D {
 		if (this.center.z > this.worldBoundary) this.center.z = this.worldBoundary;
 		if (this.center.z < -this.worldBoundary) this.center.z = -this.worldBoundary;
 
-		this.mesh = null;
-	}
-
-	/**
-	 * 将OBB2D对象与一个网格关联
-	 * @param {BABYLON.Mesh} mesh 关联的网格
-	 */
-	AttachMesh(mesh) {
-		this.mesh = mesh;
-
+		this.mesh = this.obj.Mesh;
 		this.mesh.position.x = this.center.x;
 		this.mesh.position.z = this.center.z;
 		this.mesh.rotation.y = this.d;
@@ -44,6 +35,27 @@ class OBB2D {
 		this.compute();
 	}
 
+	CreateDebugAABBMesh(scene, color) {
+		this.boxMesh = BABYLON.MeshBuilder.CreateBox("aabbboxmesh", {
+			width: 1,
+			depth: 1,
+			height: 0.2
+		}, scene);
+
+		const material = new BABYLON.StandardMaterial("boxMaterial", scene);
+		material.diffuseColor = color;
+		this.boxMesh.material = material;
+		/*
+		this.boxMesh.position.x = 0;
+		this.boxMesh.position.y = y;
+		this.boxMesh.position.z = 0;
+
+		this.obb2d.ApplyToMesh(this.boxMesh);
+		*/
+		//this.boxMesh.scaling = this._aabb.maximum.subtract(this._aabb.minimum);
+		//this.boxMesh.scaling.y = 1;
+		//this.boxMesh.position = this.center;
+	}
 	/**
 	* 重新根据 center 和 d 计算 matrix、vertices、aabb
 	*/
@@ -125,6 +137,14 @@ class OBB2D {
 		mesh.position.x = this.center.x;
 		mesh.position.z = this.center.z;
 		mesh.rotation.y = this.d;
+
+		if (this.boxMesh) {
+			//this.obb2d.ApplyToMesh(this.boxMesh);
+			this.boxMesh.scaling = this.aabb.maximum.subtract(this.aabb.minimum);
+			this.boxMesh.scaling.y = 1;
+			this.boxMesh.position = this.center;
+
+		}
 	}
 
 	/**
@@ -184,6 +204,15 @@ class OBB2D {
 		this.compute();
 	}
 
+	Clean() {
+		this.obj = undefined;
+		this.mesh = undefined;
+		if (this.boxMesh) {
+			this.boxMesh.dispose();
+			this.boxMesh = undefined;
+		}
+	}
+	
 	/**
 	 * 检测与另一个OBB2D对象的碰撞
 	 * @param {OBB2D} other 另一个OBB2D对象

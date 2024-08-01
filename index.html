@@ -67,8 +67,12 @@
             cursor: pointer;
         }
     </style>
+    <!--
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/loaders/babylon.glTF2FileLoader.js"></script>
+    -->
+    <script src="babylon/babylon.js"></script>
+    <script src="babylon/babylon.glTF2FileLoader.js"></script>
     <script src="config.js"></script>
     <script src="camera.js"></script>
     <script src="world.js"></script>
@@ -110,13 +114,13 @@
 
         // 创建Babylon引擎
         var engine = new BABYLON.Engine(canvas, true);
-        var world = new World(4000, miniMapCanvas, trendChart);
+        var world = new World(200, miniMapCanvas, trendChart);
         var camera = null;
 
         // 创建场景的函数
         var createScene = function () {
             var scene = new BABYLON.Scene(engine);
-            scene.collisionsEnabled = true;
+            scene.collisionsEnabled = false;
             world.scene = scene;
 
             // 创建相机
@@ -151,7 +155,8 @@
             }, scene);
             var skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMaterial", scene);
             skyboxMaterial.backFaceCulling = false;
-            skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("https://www.babylonjs-playground.com/textures/skybox", scene);
+            //skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("https://www.babylonjs-playground.com/textures/skybox", scene);
+            skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/skybox", scene);
             skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
             skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
             skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
@@ -174,22 +179,7 @@
         // 更新草数量按钮事件
         document.getElementById("updateGrass").addEventListener("click", function () {
             var count = parseInt(document.getElementById("grassCount").value) || 1;
-
-            for (var i = 0; i < count; i++) {
-                const x = Math.random() * world.WorldSize - world.WorldSize / 2;
-                const z = Math.random() * world.WorldSize - world.WorldSize / 2;
-                const rotation = Math.random() * Math.PI * 2 - Math.PI;
-
-                // 以一定的概率决定是创建单个草、草丛还是带花的草
-                const randomChoice = Math.random();
-                if (randomChoice < 0.33) {  // 33%的概率创建单个草
-                    world.CreateSingleGrass(x, z, rotation);
-                } else if (randomChoice < 0.66) {  // 33%的概率创建草丛
-                    world.CreateDenseGrass(x, z, rotation);
-                } else {  // 34%的概率创建带花的草
-                    world.CreateFlowerGrass(x, z, rotation);
-                }
-            }
+            world.CreateGrassRandomly(count);
         });
 
         // 暂停虫子运动按钮事件
@@ -205,6 +195,7 @@
         });
 
         var scene = createScene();
+        
         scene.registerBeforeRender(() => {
             const worldSize = world.WorldSize / 2 - 2;
             if (!camera || worldSize <= 0) return;
@@ -214,9 +205,16 @@
             pos.y = Math.max(2, pos.y);
             pos.z = Math.max(-worldSize, Math.min(worldSize, pos.z));
 
+            
+            if (Global.DEBUG && !Global.DebugPrepared) {
+                if (world.wormTemplate) {
+                    world.PrepareDebug();
+                    Global.DebugPrepared = true;
+                }
+            }
             world.RunFrame(camera.position);
         });
-
+        
         // 开始渲染循环
         engine.runRenderLoop(function () {
             scene.render();
@@ -242,7 +240,7 @@
         // Toggle mini map visibility
         toggleMiniMapButton.addEventListener("click", function () {
             const miniMap = document.getElementById("miniMap");
-            world.isMiniMapVisible = miniMap.style.display === "none";
+            
             if (miniMap.style.display != "block") {
                 miniMap.style.display = "block";
                 toggleMiniMapButton.textContent = "收起小地图";
@@ -250,6 +248,8 @@
                 miniMap.style.display = "none";
                 toggleMiniMapButton.textContent = "展开小地图";
             }
+
+            world.isMiniMapVisible = (miniMap.style.display === "block");
         });
 
         // Toggle trend chart visibility

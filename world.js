@@ -74,7 +74,6 @@ class World {
 	}
 
 	CreatWormsRandomly(count, usingInstance) {
-		
 		for (var i = 0; i < count; i++) {
 			const x = Math.random() * this.WorldSize - this.WorldSize / 2;
 			const z = Math.random() * this.WorldSize - this.WorldSize / 2;
@@ -82,13 +81,6 @@ class World {
 
 			this.CreateWorm(x, z, rotation, usingInstance);
 		}
-		
-		/*
-		this.WormSpeed = 0.01;
-		this.CreateWorm(4, 0, 0, usingInstance);
-		this.CreateWorm(-4, 0, Math.PI, usingInstance);
-		*/
-		
 	}
 
 	CreateWorm(x, z, rotation, usingInstance) {
@@ -262,68 +254,54 @@ class World {
 		this.grassTemplate2.isVisible = false;
 	}
 
-	CreateSingleGrass(x, z, rotation) {
-        var grassMesh = this.grassTemplate0.createInstance(
-            "grass" + this.grassIndex
-        );
-        this.grassIndex++;
-
-        grassMesh.position.x = x;
-        grassMesh.position.z = z;
-        grassMesh.position.y = this.groundY0;
-        grassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
-        grassMesh.checkCollisions = false;
-
-        const grass = new Grass(grassMesh, this.scene, this);
-        this.grasses.push(grass);
-        return grass;
-    }
-
-    CreateDenseGrass(x, z, rotation) {
-        var denseGrassMesh = this.grassTemplate1.createInstance(
-            "grassDense" + this.grassIndex
-        );
-        this.grassIndex++;
-        denseGrassMesh.position.x = x;
-        denseGrassMesh.position.z = z;
-        denseGrassMesh.position.y = this.groundY0;
-        denseGrassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
-        denseGrassMesh.checkCollisions = false;
-
-        const grass = new Grass(denseGrassMesh, this.scene, this);
-        this.grasses.push(grass);
-        return grass;
-    }
-
-    CreateFlowerGrass(x, z, rotation) {
-        var flowerGrassMesh = this.grassTemplate2.createInstance(
-            "grassFlower" + this.grassIndex
-        );
-        this.grassIndex++;
-
-        flowerGrassMesh.position.x = x;
-        flowerGrassMesh.position.z = z;
-        flowerGrassMesh.position.y = this.groundY0;
-        flowerGrassMesh.rotation.y = rotation + Math.random() * Math.PI * 2; // 随机旋转方向
-        flowerGrassMesh.checkCollisions = false;
-
-        const grass = new Grass(flowerGrassMesh, this.scene, this);
-        this.grasses.push(grass);
-        return grass;
-    }
-
-	
-	removeGrass(grassOBB) {
-		const grass = this.grasses.find(g => g.obb2d === grassOBB);
-		if (grass) {
-			const index = this.grasses.indexOf(grass);
-			if (index > -1) {
-				this.grasses.splice(index, 1);
-				const cellIndices = this.grid._getCellIndices(grass.obb2d);
-				this.grid.remove(grass.obb2d, cellIndices);
-				grass.grassMesh.dispose();
+	CreateGrass(x, z, rotation, grassType) {
+		var grassMeshTemplate = null;
+			if (grassType <= 1) {
+				grassMeshTemplate = this.grassTemplate0;
+			} else if (grassType <= 2) {
+				grassMeshTemplate = this.grassTemplate1;
+			} else {
+				grassMeshTemplate = this.grassTemplate2;
 			}
+
+		var grassMesh = grassMeshTemplate.createInstance(
+			"grass" + this.grassIndex
+		);
+
+		this.grassIndex++;
+
+		const grass = new Grass(this, grassMesh, x, this.groundY0, z, rotation);
+
+		this.grasses.push(grass);
+	}
+
+	CreateGrassRandomly(count, grassType0) {
+		const worldSize = this.WorldSize - 4;
+		var grassType= grassType0;
+		for (var i = 0; i < count; i++) {
+			const x = Math.random() * worldSize - worldSize / 2;
+			const z = Math.random() * worldSize - worldSize / 2;
+			const rotation = Math.random() * Math.PI * 2 - Math.PI;
+			if (!grassType0) {
+				grassType = Math.random() * 3;
+			}
+			
+			this.CreateGrass(x, z, rotation, grassType);
 		}
+	}
+	
+	PrepareDebug() {
+		this.WormSpeed = 0.01;
+		Global.WormMoveStraight = true;
+		Global.ShowOBB = true;
+		/*
+		this.CreateWorm(4, 0, 0, true);
+		//this.CreateWorm(-4, 0, Math.PI, usingInstance);
+		
+		this.CreateGrass(-4, 0, 0, 2);
+		*/
+		this.CreateWorm(88.103, -33.209 + 20, -Math.PI/2, true);
+		this.CreateGrass(88.103, -33.209, 0.3811, 1);
 	}
 
 	ToggleWormMovement() {
@@ -354,41 +332,49 @@ class World {
 
 	RunFrame(cameraPos) {
         const that = this;
-        if (!that.wormMovementEnabled) return;
 
-        that.worms.forEach(function (worm) {
-            worm.Move(that.WormSpeed);
-            worm.Eat(); // 检查并处理虫子吃草
-        });
+		if (!that.wormMovementEnabled) return;
 
+		if (that.isMiniMapVisible) {
+			that.miniMapContext.clearRect(
+				0,
+				0,
+				that.miniMapWidth,
+				that.miniMapHeight
+			);
+		}
+	
+		for (let i = that.worms.length - 1; i >= 0; i--) {
+			const worm = that.worms[i];
+			worm.Do(i, that.WormSpeed);
+	
+			if (that.isMiniMapVisible) {
+				that._drawOnMiniMap(worm.obb2d.center, "red");
+			}
+		}
+		
+		for (let i = that.grasses.length - 1; i >= 0; i--) {
+			const grass = that.grasses[i];
+			grass.Do(i);
+			if (that.isMiniMapVisible) {
+				that._drawOnMiniMap(grass.obb2d.center, "green");
+			}
+		}
+		
+		if (that.isMiniMapVisible) {
+			that._drawOnMiniMap(cameraPos, "yellow", 4);
+		}
+	
 		const currentTime = performance.now();
-		const deltaTime = currentTime - this.previousTime;
-		this.previousTime = currentTime;
+		const deltaTime = currentTime - that.previousTime;
+		that.previousTime = currentTime;
 		const currentFPS = 1000 / deltaTime;
 		
-		if (this.trendPanel.IsVisible()) {
-			const grassCount = this.grasses.length;
-			const wormCount = this.worms.length;
-
-			this.trendPanel.Add(wormCount, grassCount, currentFPS);
-		}
-
-		if (true) {
-			this.miniMapContext.clearRect(
-				0,
-				0,
-				this.miniMapWidth,
-				this.miniMapHeight
-			);
-
-			this.worms.forEach((worm) => {
-				this._drawOnMiniMap(worm.obb2d.center, "red");
-			});
-			this.grasses.forEach((grass) => {
-				//that._drawOnMiniMap(grass.position, "green");
-			});
-
-			this._drawOnMiniMap(cameraPos, "yellow", 4);
+		if (that.trendPanel.IsVisible()) {
+			const grassCount = that.grasses.length;
+			const wormCount = that.worms.length;
+	
+			that.trendPanel.Add(wormCount, grassCount, currentFPS);
 		}
 	}
 }
