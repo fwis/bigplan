@@ -96,6 +96,16 @@
         <label for="speedControl">虫子速度</label>
         <input type="range" id="speedControl" min="0.1" max="2" step="0.1" value="0.1">
         <span id="speedDisplay">当前速度: 0.1</span>
+        <label for="energyPerEat">虫子吃草获得能量:</label>
+        <input type="number" id="energyPerEat" value="5" placeholder="吃草获得能量" />
+        <label for="grassEnergy">草的初始能量:</label>
+        <input type="number" id="grassEnergy" value="50" placeholder="草的初始能量" />
+        <button id="confirmSettings">确认</button>
+        <label for="initialWormEnergy">每只虫子的初始能量:</label>
+        <input type="number" id="initialWormEnergy" value="100" placeholder="初始能量" />
+        <label for="energyPerMove">虫子移动消耗的能量:</label>
+        <input type="number" id="energyPerMove" value="1" placeholder="移动消耗能量" />
+        <button id="confirmSettings">确认</button>
     </div>
     <canvas id="miniMap" width="200" height="200"></canvas>
     <canvas id="trendChart" width="500" height="200"></canvas>
@@ -193,6 +203,14 @@
             world.UpdateWormSpeed(speed);
             document.getElementById("speedDisplay").textContent = `当前速度: ${speed.toFixed(2)}`;
         });
+
+        document.getElementById("confirmSettings").addEventListener("click", function () {
+                const energyPerEat = parseInt(document.getElementById("energyPerEat").value) || 5;
+                const grassEnergy = parseInt(document.getElementById("grassEnergy").value) || 50;
+
+                console.log("Settings confirmed: Energy Per Eat =", energyPerEat, "Grass Energy =", grassEnergy);
+                // Optionally, update any related logic or UI components here.
+            });
 
         var scene = createScene();
         

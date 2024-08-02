@@ -127,7 +127,8 @@ class World {
 			wormMesh.material = multiMaterial;
 		}
 
-		const worm = new Worm1(this, wormMesh, x, this.groundY, z, rotation);
+		const initialEnergy = parseInt(document.getElementById("initialWormEnergy").value) || 100;
+		const worm = new Worm1(this, wormMesh, x, this.groundY, z, rotation, initialEnergy);
 		that.worms.push(worm);
 		return worm;
 	}
@@ -254,7 +255,7 @@ class World {
 		this.grassTemplate2.isVisible = false;
 	}
 
-	CreateGrass(x, z, rotation, grassType) {
+	CreateGrass(x, z, rotation, grassType,initialEnergy ){
 		var grassMeshTemplate = null;
 			if (grassType <= 1) {
 				grassMeshTemplate = this.grassTemplate0;
@@ -270,7 +271,7 @@ class World {
 
 		this.grassIndex++;
 
-		const grass = new Grass(this, grassMesh, x, this.groundY0, z, rotation);
+		const grass = new Grass(this, grassMesh, x, this.groundY0, z, rotation,initialEnergy);
 
 		this.grasses.push(grass);
 	}
@@ -278,6 +279,7 @@ class World {
 	CreateGrassRandomly(count, grassType0) {
 		const worldSize = this.WorldSize - 4;
 		var grassType= grassType0;
+		const initialEnergy = parseInt(document.getElementById("grassEnergy").value) || 50;
 		for (var i = 0; i < count; i++) {
 			const x = Math.random() * worldSize - worldSize / 2;
 			const z = Math.random() * worldSize - worldSize / 2;
@@ -286,7 +288,7 @@ class World {
 				grassType = Math.random() * 3;
 			}
 			
-			this.CreateGrass(x, z, rotation, grassType);
+			this.CreateGrass(x, z, rotation, grassType, initialEnergy);
 		}
 	}
 	

@@ -1,5 +1,5 @@
 class Grass {
-    constructor(world, mesh, x, y, z, d) {
+    constructor(world, mesh, x, y, z, d, initialEnergy) {
         this.objType = "草";
         this.name = mesh.id;
 		this.world = world;
@@ -24,7 +24,7 @@ class Grass {
         //将草的OBB2D添加到网格中
         this.world.grid.add(this.obb2d);
 
-        this.energy = 1;
+        this.energy  = initialEnergy;
         this.dying = false; //正在死亡
         this.dead = false; //已经死亡
     }
@@ -60,13 +60,14 @@ class Grass {
     ReduceEnergy(eg) {
         if (this.energy <=0) return 0;
 
-        if (eg === -1) {
+        console.log(`Grass ${this.name} energy before reduction: ${this.energy}`);
+       /* if (eg === -1) {
             const r = this.energy;
             this.energy = 0;
             this.dying = true;
             //console.log(`${this.name} dying`);
             return r;
-        }
+        }*/
 
         const oldeg = this.energy;
         var remained = this.energy - eg;
@@ -75,9 +76,10 @@ class Grass {
         this.energy = remained;
 
         if (this.energy <= 0) {
-            //console.log(`${this.name} dying`);
+            console.log(`${this.name} dying`);
             this.dying = true;
         }
+        console.log(`Grass ${this.name} energy after reduction: ${this.energy}`);
         return (oldeg - this.energy);
     }
 }

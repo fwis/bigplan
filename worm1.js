@@ -35,22 +35,61 @@ class Worm1 {
 
 		this.world.grid.add(this.obb2d);
 		//console.log(`${this.name} added into grid!`);
+		this.energy = parseInt(document.getElementById("initialWormEnergy").value) || 100;
+        this.dying = false; 
+        this.dead = false;  
 	}
 
 	get Mesh() {
         return this.mesh;
     }
 
-	Do(index = -1, distance = 0.1) {
+	/*Do(index = -1, distance = 0.1) {
 		this.Move(distance);
 		this.Eat();
-	}
+	}*/
+	Do(index = -1, distance = 0.1) {
+        if (this.dead) {
+            console.log(`${this.name} is dead`);
+            return;
+        }
+
+        if (this.dying) {
+            this.world.grid.remove(this.obb2d);
+            if (index < 0) {
+                index = this.world.worms.indexOf(this);
+            }
+            this.world.worms.splice(index, 1);
+
+            this.obb2d.Clean();
+            this.mesh.dispose();
+            this.mesh = undefined;
+
+            this.dying = false;
+            this.dead = true;
+
+            console.log(`${this.name} removed from world`);
+            return;
+        }
+
+        this.Move(distance);
+        this.Eat();
+    }
 
 	/**
 	 * 移动虫子
 	 * @param {float} distance 运动距离，默认值为0.1
 	 */
 	Move(distance) {
+		const energyPerMove = parseInt(document.getElementById("energyPerMove").value) || 1;
+		
+        if (this.energy <= 0) {
+            this.dying = true;
+            return;
+        }
+
+        this.ReduceEnergy(energyPerMove);
+		
 		var rotation = (Math.random() * Math.PI) / 4 - Math.PI / 8;
 		if (Global.WormMoveStraight) {
 			rotation = 0;
@@ -105,12 +144,54 @@ class Worm1 {
 	/**
 	 * 虫子吃草
 	 */
-	Eat() {
+	/*Eat() {
 		if (this.collidingBox && this.collidingBox.obj.objType === "草") {
 			//console.log(`${this.name} ${this.collidingBox.obj.name} collided, center=(${this.collidingBox.x}, ${this.collidingBox.z}), d=${this.collidingBox.d}`);
-            const energy = this.collidingBox.obj.ReduceEnergy(-1);
+            //const energy = this.collidingBox.obj.ReduceEnergy(-1);
 			
 			//this.AddEnergy(energy);
+			const energyGain = parseInt(document.getElementById("energyPerEat").value) || 5;
+            const grass = this.collidingBox.obj;
+
+            console.log(`Worm ${this.name} is eating grass ${grass.name}`);
+
+            const energy = grass.ReduceEnergy(energyGain);
+
+            console.log(`Worm ${this.name} gained ${energy} energy from grass ${grass.name}`);
 		}
-	}
+	}*/
+
+	Eat() {
+        if (this.collidingBox && this.collidingBox.obj.objType === "草") {
+            const energyGain = this.collidingBox.obj.ReduceEnergy(5);
+
+            this.AddEnergy(energyGain);
+            console.log(`${this.name} gained ${energyGain} energy from eating grass ${this.collidingBox.obj.name}`);
+        }
+    }
+
+	 /**
+     * 减少虫子的能量
+     * @param {number} amount 要减少的能量
+     */
+	 ReduceEnergy(amount) {
+        const oldEnergy = this.energy;
+        this.energy -= amount;
+
+        console.log(`${this.name} energy reduced from ${oldEnergy} to ${this.energy}`);
+
+        if (this.energy <= 0) {
+            this.dying = true;
+            console.log(`${this.name} is dying`);
+        }
+    }
+
+    /**
+     * 增加虫子的能量
+     * @param {number} amount 要增加的能量
+     */
+    AddEnergy(amount) {
+        this.energy += amount;
+        console.log(`${this.name} energy increased to ${this.energy}`);
+    }
 }
