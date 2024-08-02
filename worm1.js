@@ -166,7 +166,7 @@ class Worm1 {
             const energyGain = this.collidingBox.obj.ReduceEnergy(5);
 
             this.AddEnergy(energyGain);
-            console.log(`${this.name} gained ${energyGain} energy from eating grass ${this.collidingBox.obj.name}`);
+           // console.log(`${this.name} gained ${energyGain} energy from eating grass ${this.collidingBox.obj.name}`);
         }
     }
 
@@ -192,6 +192,6 @@ class Worm1 {
      */
     AddEnergy(amount) {
         this.energy += amount;
-        console.log(`${this.name} energy increased to ${this.energy}`);
+       // console.log(`${this.name} energy increased to ${this.energy}`);
     }
 }

@@ -257,13 +257,13 @@ class World {
 
 	CreateGrass(x, z, rotation, grassType,initialEnergy ){
 		var grassMeshTemplate = null;
-			if (grassType <= 1) {
-				grassMeshTemplate = this.grassTemplate0;
-			} else if (grassType <= 2) {
-				grassMeshTemplate = this.grassTemplate1;
-			} else {
-				grassMeshTemplate = this.grassTemplate2;
-			}
+		if (grassType <= 1) {
+			grassMeshTemplate = this.grassTemplate0;
+		} else if (grassType <= 2) {
+			grassMeshTemplate = this.grassTemplate1;
+		} else {
+			grassMeshTemplate = this.grassTemplate2;
+		}
 
 		var grassMesh = grassMeshTemplate.createInstance(
 			"grass" + this.grassIndex

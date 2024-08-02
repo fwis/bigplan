@@ -134,8 +134,6 @@
             world.scene = scene;
 
             // 创建相机
-            //camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 3, 200, new BABYLON.Vector3(0, 0, 0), scene);
-            //camera.attachControl(canvas, true);
             camera = new CustomCamera("customCamera", new BABYLON.Vector3(0, 100, 0), scene);
             camera.ellipsoid = new BABYLON.Vector3(1, 1, 1);
             camera.checkCollisions = false;
@@ -146,11 +144,9 @@
             light1.specular = new BABYLON.Color3(0.3, 0.3, 0.3); // 上半球光照强度
             light1.intensity = 1.0;
 
-
             // 创建地面
             var ground = BABYLON.MeshBuilder.CreateGround("ground", { width: world.WorldSize, height: world.WorldSize }, scene);
             var groundMaterial = new BABYLON.StandardMaterial("groundMaterial", scene);
-            //groundMaterial.diffuseTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/grass.png", scene);
             groundMaterial.diffuseTexture = new BABYLON.Texture("ground0.png", scene);
             groundMaterial.diffuseTexture.uScale = 50;
             groundMaterial.diffuseTexture.vScale = 50;
@@ -165,7 +161,6 @@
             }, scene);
             var skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMaterial", scene);
             skyboxMaterial.backFaceCulling = false;
-            //skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("https://www.babylonjs-playground.com/textures/skybox", scene);
             skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/skybox", scene);
             skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
             skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
@@ -175,7 +170,6 @@
 
             world.LoadGrassModel("");
             world.LoadWormModel("worm2.glb");
-
 
             return scene;
         };
@@ -205,15 +199,13 @@
         });
 
         document.getElementById("confirmSettings").addEventListener("click", function () {
-                const energyPerEat = parseInt(document.getElementById("energyPerEat").value) || 5;
-                const grassEnergy = parseInt(document.getElementById("grassEnergy").value) || 50;
-
-                console.log("Settings confirmed: Energy Per Eat =", energyPerEat, "Grass Energy =", grassEnergy);
-                // Optionally, update any related logic or UI components here.
-            });
+            const energyPerEat = parseInt(document.getElementById("energyPerEat").value) || 5;
+            const grassEnergy = parseInt(document.getElementById("grassEnergy").value) || 50;
+            console.log("Settings confirmed: Energy Per Eat =", energyPerEat, "Grass Energy =", grassEnergy);
+        });
 
         var scene = createScene();
-        
+
         scene.registerBeforeRender(() => {
             const worldSize = world.WorldSize / 2 - 2;
             if (!camera || worldSize <= 0) return;
@@ -223,7 +215,6 @@
             pos.y = Math.max(2, pos.y);
             pos.z = Math.max(-worldSize, Math.min(worldSize, pos.z));
 
-            
             if (Global.DEBUG && !Global.DebugPrepared) {
                 if (world.wormTemplate) {
                     world.PrepareDebug();
@@ -232,7 +223,7 @@
             }
             world.RunFrame(camera.position);
         });
-        
+
         // 开始渲染循环
         engine.runRenderLoop(function () {
             scene.render();
@@ -258,7 +249,7 @@
         // Toggle mini map visibility
         toggleMiniMapButton.addEventListener("click", function () {
             const miniMap = document.getElementById("miniMap");
-            
+
             if (miniMap.style.display != "block") {
                 miniMap.style.display = "block";
                 toggleMiniMapButton.textContent = "收起小地图";
