@@ -24,6 +24,12 @@ class World {
 		this.flowerGrassCount = [];
 		this.wormCount = [];
 
+		this.grassGrowthRate = 0.01; // 草生长的初始速率
+        this.grassGrowthEnabled = false; // 草生长初始为禁用状态
+		//帧率可调节
+		this.growInterval = 200; // 草每200帧生长一次
+        this.frameCounter = 0; // 帧计数器
+
 		this.miniMapCanvas = miniMapCanvas;
 		this.miniMapContext = miniMapCanvas.getContext("2d");
 		this.miniMapWidth = this.miniMapCanvas.width;
@@ -331,6 +337,20 @@ class World {
 		this.miniMapContext.fillStyle = color;
 		this.miniMapContext.fillRect(x, z, size, size);
 	}
+
+	 // 定期调用这个方法来增加新的草
+	 GrowGrass() {
+        if (this.grassGrowthEnabled && this.frameCounter >= this.growInterval) {
+            const newGrassCount = Math.floor(Math.random() * 3) + 1; // 每次生长 1 到 3 棵草
+            this.CreateGrassRandomly(newGrassCount);
+            console.log(`新增 ${newGrassCount} 棵草，当前草总数：${this.grasses.length}`);
+            this.frameCounter = 0; // 重置帧计数器
+        }
+        this.frameCounter++;
+    }
+	
+	
+	
 
 	RunFrame(cameraPos) {
         const that = this;

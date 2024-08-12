@@ -50,7 +50,7 @@ class Worm1 {
 	}*/
 	Do(index = -1, distance = 0.1) {
         if (this.dead) {
-            console.log(`${this.name} is dead`);
+           // console.log(`${this.name} is dead`);
             return;
         }
 
@@ -68,7 +68,7 @@ class Worm1 {
             this.dying = false;
             this.dead = true;
 
-            console.log(`${this.name} removed from world`);
+           // console.log(`${this.name} removed from world`);
             return;
         }
 

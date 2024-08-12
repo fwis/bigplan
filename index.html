@@ -95,7 +95,11 @@
         <button id="toggleMovement">暂停虫子运动</button>
         <label for="speedControl">虫子速度</label>
         <input type="range" id="speedControl" min="0.1" max="2" step="0.1" value="0.1">
-        <span id="speedDisplay">当前速度: 0.1</span>
+        <span id="speedDisplay">虫子当前速度: 0.1</span>
+        <label for="grassGrowthRate">草生长速率:</label>
+        <input type="number" id="grassGrowthRate" value="0.01" step="0.01" placeholder="生长速率" />
+
+        <button id="toggleGrassGrowth" disabled>开始草生长</button>
         <label for="energyPerEat">虫子吃草获得能量:</label>
         <input type="number" id="energyPerEat" value="5" placeholder="吃草获得能量" />
         <label for="grassEnergy">草的初始能量:</label>
@@ -178,12 +182,14 @@
         document.getElementById("addWorm").addEventListener("click", function () {
             var count = parseInt(document.getElementById("wormCount").value) || 1;
             world.CreatWormsRandomly(count, Global.UseWormInstance);
+            enableGrassGrowth();
         });
 
         // 更新草数量按钮事件
         document.getElementById("updateGrass").addEventListener("click", function () {
             var count = parseInt(document.getElementById("grassCount").value) || 1;
             world.CreateGrassRandomly(count);
+            enableGrassGrowth();
         });
 
         // 暂停虫子运动按钮事件
@@ -203,7 +209,26 @@
             const grassEnergy = parseInt(document.getElementById("grassEnergy").value) || 50;
             console.log("Settings confirmed: Energy Per Eat =", energyPerEat, "Grass Energy =", grassEnergy);
         });
+        //草生长速率
+        document.getElementById("grassGrowthRate").addEventListener("input", function () {
+            world.grassGrowthRate = parseFloat(document.getElementById("grassGrowthRate").value) || 0.01;
+            console.log(`草生长速率已调整为 ${world.grassGrowthRate}`);
+        });
+        //草生长开关
 
+        document.getElementById("toggleGrassGrowth").addEventListener("click", function () {
+            world.grassGrowthEnabled = !world.grassGrowthEnabled;
+            document.getElementById("toggleGrassGrowth").textContent = world.grassGrowthEnabled ? "暂停草生长" : "开始草生长";
+            console.log(`草生长已${world.grassGrowthEnabled ? '开启' : '暂停'}`);
+        });
+        // 启用草生长的函数
+        function enableGrassGrowth() {
+            if (!world.grassGrowthEnabled) {
+                world.grassGrowthEnabled = true;
+                document.getElementById("toggleGrassGrowth").disabled = false; // 启用草生长控制按钮
+                console.log("草生长功能已启用");
+            }
+        }
         var scene = createScene();
 
         scene.registerBeforeRender(() => {
@@ -220,6 +245,9 @@
                     world.PrepareDebug();
                     Global.DebugPrepared = true;
                 }
+            }
+            if (world.grassGrowthEnabled) {
+                world.GrowGrass();
             }
             world.RunFrame(camera.position);
         });
